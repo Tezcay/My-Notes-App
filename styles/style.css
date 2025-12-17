@@ -1,0 +1,357 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #fff;
+  height: 100vh;
+  margin: 0;
+  color: #333;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+li {
+  cursor: pointer;
+}
+
+.app {
+  display: flex;
+  height: 100%;
+}
+
+.sidebar {
+  width: 250px;
+  background-color: #f7f7f7;
+  display: flex;
+  flex-direction: column;
+  padding-top: 20px;
+  border-right: 1px solid #e0e0e0;
+  user-select: none;
+}
+
+.sidebar-group {
+  margin-bottom: 10px;
+}
+
+.mt-20 {
+  margin-top: 30px;
+}
+
+.group-title {
+  padding: 0 20px 10px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #222;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px 10px 24px;
+  margin: 2px 12px;
+  cursor: pointer;
+  border-radius: 8px;
+  color: #555;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.nav-item:hover {
+  background-color: #eaeaea;
+}
+
+.nav-item.active {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  font-weight: 500;
+}
+
+.nav-item .icon {
+  width: 24px;
+  text-align: center;
+  margin-right: 8px;
+  font-size: 15px;
+  color: #666;
+}
+
+.nav-item.active .icon {
+  color: #1976d2;
+}
+
+.folder-container {
+  margin: 2px 12px;
+}
+
+.folder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0 10px 4px;
+  cursor: pointer;
+  border-radius: 8px;
+  color: #555;
+  font-size: 14px;
+}
+
+.folder-header:hover {
+  background-color: #eaeaea;
+}
+
+.folder-header .left-col {
+  display: flex;
+  align-items: center;
+}
+
+.folder-header .arrow {
+  width: 20px;
+  text-align: center;
+  font-size: 10px;
+  color: #999;
+  transition: transform 0.2s;
+}
+
+.folder-header .icon {
+  width: 24px;
+  text-align: center;
+  margin-right: 8px;
+  color: #666;
+}
+
+.folder-header .add-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #999;
+  cursor: pointer;
+  padding: 0 8px;
+}
+
+.folder-header .add-btn:hover {
+  color: #333;
+}
+
+.sub-list {
+  display: block;
+}
+
+.sub-item {
+  padding-left: 48px;
+  margin-top: 2px;
+}
+
+/* ============================
+   第二栏：笔记列表 (List View)
+   ============================ */
+.list-view {
+  width: 320px;
+  background-color: #fff;
+  border-right: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* 顶部标题 */
+.list-header-top {
+  padding: 24px 24px 10px;
+}
+
+.list-header-top h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: bold;
+  color: #222;
+}
+
+/* 搜索框与圆形按钮容器 */
+.search-action-area {
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+/* 搜索框 */
+.search-box {
+  position: relative;
+  flex: 1; /* 占据剩余空间 */
+}
+.search-box input {
+  width: 100%;
+  height: 36px;
+  padding: 0 15px 0 34px;
+  background-color: #f4f4f4; /* 浅灰背景 */
+  border: 1px solid transparent;
+  border-radius: 6px; /* 小圆角 */
+  outline: none;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.search-box input:hover { background-color: #f0f0f0; }
+.search-box input:focus { 
+  background-color: #fff; 
+  border-color: #f5a623; 
+}
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  font-size: 14px;
+}
+
+/* 关键：黄色圆形按钮 */
+.add-circle-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #f5a623;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(245, 166, 35, 0.4); /* 投影 */
+  transition: transform 0.1s;
+}
+.add-circle-btn:hover { background-color: #e0961f; }
+.add-circle-btn:active { transform: scale(0.95); }
+
+/* 状态栏 (共xx条...) */
+.list-stats-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 24px;
+  font-size: 12px;
+  color: #999;
+  border-bottom: 1px solid #f0f0f0;
+}
+.sort-action { cursor: pointer; }
+.sort-action:hover { color: #666; }
+
+/* 列表项 */
+.note-list {
+  flex: 1;
+  overflow-y: auto;
+}
+.note-item {
+  padding: 15px 24px;
+  border-bottom: 1px solid #f9f9f9;
+  cursor: pointer;
+}
+.note-item:hover { background-color: #fafafa; }
+
+/* 截图中的选中态：背景变灰，没有左侧黄条 */
+.note-item.active {
+  background-color: #f2f2f2; 
+}
+
+.note-title {
+  font-size: 16px;
+  font-weight: 400;
+  color: #333;
+  margin-bottom: 4px;
+}
+.note-preview {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.note-date {
+  font-size: 12px;
+  color: #ccc;
+}
+
+
+/* ============================
+   第三栏：编辑器 (Editor View)
+   ============================ */
+.editor-view {
+  flex: 1;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 工具栏 */
+.toolbar {
+  padding: 15px 30px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tool-left, .tool-right {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* 按钮间距 */
+}
+
+.tool-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #444; /* 稍微深一点的灰色 */
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  min-width: 28px;
+}
+.tool-btn:hover { background-color: #f0f0f0; }
+
+/* H1 H2 文字图标样式 */
+.text-icon {
+  font-weight: bold;
+  font-family: serif;
+  font-size: 14px;
+}
+
+/* 分割线 */
+.divider {
+  color: #e0e0e0;
+  font-size: 14px;
+  margin: 0 4px;
+}
+
+/* 编辑区 */
+.editor-container {
+  flex: 1;
+  padding: 40px 60px; /* 大留白 */
+  display: flex;
+  flex-direction: column;
+}
+
+#note-title {
+  font-size: 32px; /* 更大的标题 */
+  font-weight: bold;
+  border: none;
+  outline: none;
+  width: 100%;
+  margin-bottom: 30px;
+  color: #222;
+}
+
+#note-content {
+  flex: 1;
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #333;
+}
