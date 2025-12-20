@@ -1,4 +1,6 @@
-const notes = [
+// 1. 数据定义
+// 用 let 定义数据，方便后续修改(删除/添加)
+let notes = [
   {
     id: 1,
     title: "First Note",
@@ -29,6 +31,7 @@ const notes = [
   }
 ];
 
+// 当前状态
 let currentCategoryId = "all";
 let currentNoteId = null;
 
@@ -39,9 +42,15 @@ const noteCountEl = document.querySelector(".count-text"); // 中间共xx条笔�
 const listTitleEl = document.querySelector('.list-header-top h2'); // 中间顶部标题
 const searchInput = document.querySelector('.search-box input'); // 搜索输入框
 
+// 获取按钮元素
+const addBtn = document.querySelector('.add-circle-btn'); // 中间黄色的新增按钮
+const deleteBtn = document.querySelector('.delete-btn'); // 右上角的删除按钮
+
 // 右侧编辑器元素
 const editorTitle = document.getElementById('note-title');
 const editorContent = document.getElementById('note-content');
+
+// 核心功能函数
 
 // 渲染笔记列表
 function renderNoteList() {
@@ -71,6 +80,7 @@ function renderNoteList() {
     // 创建 li 元素
     const li = document.createElement('li');
     li.className = 'note-item';
+
     // 如果是当前选中的笔记，添加 active 类
     if (note.id === currentNoteId) {
       li.classList.add('active');
@@ -129,6 +139,86 @@ navItems.forEach(item => {
     editorContent.value = '';
   });
 });
+
+// 新增笔记按钮点击事件
+if (addBtn) {
+  addBtn.addEventListener('click', () => {
+    // 1. 创建新笔记对象
+    const newId = Date.now(); // 使用时间戳作为唯一ID
+    const newNote = {
+      id: newId, 
+      title: 'new note',
+      content: '',
+      updateTime: 'just now',
+      // 如果当前分类是'all'，则默认分类为'uncategorized', 否则为当前分类
+      categoryId: currentCategoryId === "all" ? "uncategorized" : currentCategoryId 
+    };
+
+    // 2. 添加到数据数组最前面
+    notes.unshift(newNote); 
+
+    // 3. 选中这个新笔记
+    currentNoteId = newId;
+
+    // 4. 重新渲染笔记列表
+    renderNoteList();
+
+    // 5. 加载新笔记到编辑器
+    loadNoteToEditor(newNote);
+
+    // 6. 自动聚焦标题输入框, 方便直接输入
+    editorTitle.focus();
+  });
+}
+
+// 实时编辑：标题和内容输入框监听
+[editorTitle, editorContent].forEach(input => {
+  input.addEventListener('input', () => {
+    // 如果没有选中笔记，不允许编辑
+    if (!currentNoteId) return;
+
+    // 获取当前编辑的笔记对象
+    const currentNote = notes.find(n => n.id === currentNoteId);
+
+    if (currentNote) {
+      // 更新数据
+      currentNote.title = editorTitle.value;
+      currentNote.content = editorContent.value;
+      currentNote.updateTime = 'just now'; // 简化处理，直接设为'just now'
+
+      // 重新渲染笔记列表，更新预览和时间
+      renderNoteList();
+
+      // 重绘后焦点可能会丢失，简单处理：保持 focus 状态 (浏览器默认行为通常能保持)
+      // 如果发现输入卡顿或焦点丢失，可以优化这里的逻辑
+    }
+  });
+});
+
+// 删除笔记按钮点击事件
+if (deleteBtn) {
+  deleteBtn.addEventListener('click', () => {
+    // 如果没有选中笔记，直接返回
+    if (!currentNoteId) {
+      alert('请先选择要删除的笔记');
+      return;
+    }
+
+    // 确认删除
+    if (confirm('确定要删除这条笔记吗？')) {
+      // 1. 从数据数组中删除笔记
+      notes = notes.filter(n => n.id !== currentNoteId);
+
+      // 2. 清除当前选中状态
+      currentNoteId = null;
+      editorTitle.value = '';
+      editorContent.value = '';
+
+      // 3. 重新渲染笔记列表
+      renderNoteList();
+    }
+  });
+}
 
 // 搜索功能
 if (searchInput) {
