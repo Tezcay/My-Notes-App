@@ -1,4 +1,4 @@
-// 1. 数据定义
+/*
 // 用 let 定义数据，方便后续修改(删除/添加)
 let notes = [
   {
@@ -30,6 +30,23 @@ let notes = [
     categoryId: "todo-unfinished"
   }
 ];
+*/
+
+// 1. 数据定义 模拟数据库 + LocalStorage
+// 定义一个默认的初始数据集
+const defaultNotes = [
+  {
+    id: 1,
+    title: "First Note",
+    content: "This is the content of the first note.",  
+    updateTime: "just now",
+    categoryId: "uncategorized"
+  }
+];
+
+// 优先从 LocalStorage 获取数据
+// 如果没有数据，则使用默认数据
+let notes = JSON.parse(localStorage.getItem('notes')) || defaultNotes;
 
 // 当前状态
 let currentCategoryId = "all";
@@ -51,6 +68,12 @@ const editorTitle = document.getElementById('note-title');
 const editorContent = document.getElementById('note-content');
 
 // 核心功能函数
+
+// 保存数据到 LocalStorage
+// 每次数据变更后调用
+function saveNotesToLocalStorage() {
+  localStorage.setItem('notes', JSON.stringify(notes));
+}
 
 // 渲染笔记列表
 function renderNoteList() {
@@ -156,6 +179,8 @@ if (addBtn) {
 
     // 2. 添加到数据数组最前面
     notes.unshift(newNote); 
+    // 保存数据到 LocalStorage
+    saveNotesToLocalStorage();
 
     // 3. 选中这个新笔记
     currentNoteId = newId;
@@ -186,6 +211,8 @@ if (addBtn) {
       currentNote.content = editorContent.value;
       currentNote.updateTime = 'just now'; // 简化处理，直接设为'just now'
 
+      // 保存数据到 LocalStorage
+      saveNotesToLocalStorage();
       // 重新渲染笔记列表，更新预览和时间
       renderNoteList();
 
@@ -208,6 +235,8 @@ if (deleteBtn) {
     if (confirm('确定要删除这条笔记吗？')) {
       // 1. 从数据数组中删除笔记
       notes = notes.filter(n => n.id !== currentNoteId);
+      // 保存数据到 LocalStorage
+      saveNotesToLocalStorage();
 
       // 2. 清除当前选中状态
       currentNoteId = null;
