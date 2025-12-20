@@ -32,7 +32,7 @@ let notes = [
 ];
 */
 
-// 1. 数据定义 模拟数据库 + LocalStorage
+// 数据定义 模拟数据库 + LocalStorage
 // 定义一个默认的初始数据集
 const defaultNotes = [
   { 
@@ -253,7 +253,23 @@ sidebar.addEventListener('click', (e) => {
   }
 });
 
-// B. 新增文件夹按钮点击事件
+// B0. 文件夹列表展开/收起按钮点击事件
+const folderToggleBtn = document.getElementById('folder-toggle-btn');
+const folderHeader = document.querySelector('.folder-header');
+
+if (folderToggleBtn && folderListEl) {
+  folderToggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // 阻止事件冒泡，避免触发侧边栏点击事件
+
+    // 1. 切换列表的 collapsed 类
+    folderListEl.classList.toggle('collapsed');
+
+    // 2. 切换头部的 collapsed 类 (用于旋转箭头)
+    folderHeader.classList.toggle('collapsed');
+  });
+}
+
+// B1. 新增文件夹按钮点击事件
 if (addFolderBtn) {
   addFolderBtn.addEventListener('click', (e) => {
     e.stopPropagation(); // 阻止事件冒泡，避免触发侧边栏点击事件
