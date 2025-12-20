@@ -30,19 +30,15 @@
           <li class="folder-container">
             <div class="folder-header">
               <div class="left-col">
-                <span class="arrow"><i class="fa-solid fa-caret-down"></i></span>
+                <span class="arrow" id="folder-toggle-btn"><i class="fa-solid fa-caret-down"></i></span>
                 <span class="icon"><i class="fa-regular fa-folder"></i></span>
                 <span class="text">我的文件夹</span>
               </div>
 
-              <button class="add-btn" title="新建文件夹">+</i></button>
+              <button class="add-btn" id="add-folder-btn" title="新建文件夹"><i class="fa-solid fa-plus"></i></button>
             </div>
 
-            <ul class="sub-list">
-              <li class="nav-item sub-item" data-id="folder-call">
-                <span class="icon"><i class="fa-regular fa-folder"></i></span>
-                <span class="text">通话笔记</span>
-              </li>
+            <ul class="sub-list" id="folder-list">
             </ul>
           </li>
 

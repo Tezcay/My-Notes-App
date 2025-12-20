@@ -134,11 +134,29 @@ li {
 
 .sub-list {
   display: block;
+  max-height: 500px;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+  opacity: 1;
 }
 
 .sub-item {
   padding-left: 48px;
   margin-top: 2px;
+}
+
+.sub-list.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.arrow i {
+  transition: transform 0.3s ease;
+  display: inline-block;
+}
+
+.folder-header.collapsed .arrow i {
+  transform: rotate(-90deg);
 }
 
 /* ============================
