@@ -1,10 +1,67 @@
+/* === 主题变量 === */
+:root {
+  /* 浅色主题 (默认) */
+  --bg-primary: #fff;
+  --bg-secondary: #f7f7f7;
+  --bg-tertiary: #f4f4f4;
+  --bg-hover: #eaeaea;
+  --bg-active: #e3f2fd;
+  --bg-note-active: #f2f2f2;
+
+  --text-primary: #333;
+  --text-secondary: #555;
+  --text-tertiary: #666;
+  --text-muted: #999;
+  --text-faint: #ccc;
+
+  --border-color: #e0e0e0;
+  --border-light: #eee;
+  --border-faint: #f0f0f0;
+
+  --accent-color: #1976d2;
+  --accent-yellow: #f5a623;
+  --accent-green: #10B981;
+  --accent-red: #ef4444;
+
+  --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+/* 深色主题 */
+[data-theme="dark"] {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-tertiary: #0f3460;
+  --bg-hover: #1f4068;
+  --bg-active: #1f4068;
+  --bg-note-active: #0f3460;
+
+  --text-primary: #e8e8e8;
+  --text-secondary: #c8c8c8;
+  --text-tertiary: #a8a8a8;
+  --text-muted: #888;
+  --text-faint: #666;
+
+  --border-color: #2a2a4a;
+  --border-light: #1f3a5f;
+  --border-faint: #1a2a4a;
+
+  --accent-color: #4fc3f7;
+  --accent-yellow: #ffc107;
+  --accent-green: #4ade80;
+  --accent-red: #f87171;
+
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background-color: #fff;
+  background-color: var(--bg-primary);
   height: 100vh;
   margin: 0;
-  color: #333;
+  color: var(--text-primary);
+  transition: background-color 0.3s, color 0.3s;
 }
+
 
 ul {
   list-style: none;
@@ -23,12 +80,13 @@ li {
 
 .sidebar {
   width: 250px;
-  background-color: #f7f7f7;
+  background-color: var(--bg-secondary);
   display: flex;
   flex-direction: column;
   padding-top: 20px;
-  border-right: 1px solid #e0e0e0;
+  border-right: 1px solid var(--border-color);
   user-select: none;
+  transition: background-color 0.3s;
 }
 
 .sidebar-group {
@@ -43,7 +101,7 @@ li {
   padding: 0 20px 10px 24px;
   font-size: 16px;
   font-weight: bold;
-  color: #222;
+  color: var(--text-primary);
 }
 
 .nav-item {
@@ -53,18 +111,18 @@ li {
   margin: 2px 12px;
   cursor: pointer;
   border-radius: 8px;
-  color: #555;
+  color: var(--text-secondary);
   font-size: 14px;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 .nav-item:hover {
-  background-color: #eaeaea;
+  background-color: var(--bg-hover);
 }
 
 .nav-item.active {
-  background-color: #e3f2fd;
-  color: #1976d2;
+  background-color: var(--bg-active);
+  color: var(--accent-color);
   font-weight: 500;
 }
 
@@ -73,11 +131,31 @@ li {
   text-align: center;
   margin-right: 8px;
   font-size: 15px;
-  color: #666;
+  color: var(--text-tertiary);
 }
 
 .nav-item.active .icon {
-  color: #1976d2;
+  color: var(--accent-color);
+}
+
+/* 拖放样式 */
+.nav-item.drag-over {
+  background-color: #c8e6c9;
+  border: 2px dashed #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+}
+
+.note-item.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+
+.note-item {
+  cursor: grab;
+}
+
+.note-item:active {
+  cursor: grabbing;
 }
 
 .folder-container {
@@ -91,12 +169,12 @@ li {
   padding: 10px 0 10px 4px;
   cursor: pointer;
   border-radius: 8px;
-  color: #555;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
 .folder-header:hover {
-  background-color: #eaeaea;
+  background-color: var(--bg-hover);
 }
 
 .folder-header .left-col {
@@ -164,11 +242,12 @@ li {
    ============================ */
 .list-view {
   width: 320px;
-  background-color: #fff;
-  border-right: 1px solid #eee;
+  background-color: var(--bg-primary);
+  border-right: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
   height: 100vh;
+  transition: background-color 0.3s;
 }
 
 /* 顶部标题 */
@@ -180,7 +259,7 @@ li {
   margin: 0;
   font-size: 20px;
   font-weight: bold;
-  color: #222;
+  color: var(--text-primary);
 }
 
 /* 搜索框与圆形按钮容器 */
@@ -195,24 +274,33 @@ li {
 /* 搜索框 */
 .search-box {
   position: relative;
-  flex: 1; /* 占据剩余空间 */
+  flex: 1;
+  /* 占据剩余空间 */
 }
+
 .search-box input {
   width: 100%;
   height: 36px;
   padding: 0 15px 0 34px;
-  background-color: #f4f4f4; /* 浅灰背景 */
+  background-color: #f4f4f4;
+  /* 浅灰背景 */
   border: 1px solid transparent;
-  border-radius: 6px; /* 小圆角 */
+  border-radius: 6px;
+  /* 小圆角 */
   outline: none;
   font-size: 14px;
   box-sizing: border-box;
 }
-.search-box input:hover { background-color: #f0f0f0; }
-.search-box input:focus { 
-  background-color: #fff; 
-  border-color: #f5a623; 
+
+.search-box input:hover {
+  background-color: #f0f0f0;
 }
+
+.search-box input:focus {
+  background-color: #fff;
+  border-color: #f5a623;
+}
+
 .search-icon {
   position: absolute;
   left: 10px;
@@ -235,11 +323,18 @@ li {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(245, 166, 35, 0.4); /* 投影 */
+  box-shadow: 0 2px 6px rgba(245, 166, 35, 0.4);
+  /* 投影 */
   transition: transform 0.1s;
 }
-.add-circle-btn:hover { background-color: #e0961f; }
-.add-circle-btn:active { transform: scale(0.95); }
+
+.add-circle-btn:hover {
+  background-color: #e0961f;
+}
+
+.add-circle-btn:active {
+  transform: scale(0.95);
+}
 
 /* 状态栏 (共xx条...) */
 .list-stats-bar {
@@ -247,46 +342,58 @@ li {
   justify-content: space-between;
   padding: 10px 24px;
   font-size: 12px;
-  color: #999;
-  border-bottom: 1px solid #f0f0f0;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-faint);
 }
-.sort-action { cursor: pointer; }
-.sort-action:hover { color: #666; }
+
+.sort-action {
+  cursor: pointer;
+}
+
+.sort-action:hover {
+  color: #666;
+}
 
 /* 列表项 */
 .note-list {
   flex: 1;
   overflow-y: auto;
 }
+
 .note-item {
   padding: 15px 24px;
-  border-bottom: 1px solid #f9f9f9;
+  border-bottom: 1px solid var(--border-faint);
   cursor: pointer;
 }
-.note-item:hover { background-color: #fafafa; }
+
+.note-item:hover {
+  background-color: var(--bg-hover);
+}
 
 /* 截图中的选中态：背景变灰，没有左侧黄条 */
 .note-item.active {
-  background-color: #f2f2f2; 
+  background-color: var(--bg-note-active);
 }
 
 .note-title {
   font-size: 16px;
   font-weight: 400;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
+
 .note-preview {
   font-size: 13px;
-  color: #666;
+  color: var(--text-tertiary);
   margin-bottom: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .note-date {
   font-size: 12px;
-  color: #ccc;
+  color: var(--text-faint);
 }
 
 
@@ -295,31 +402,35 @@ li {
    ============================ */
 .editor-view {
   flex: 1;
-  background-color: #fff;
+  background-color: var(--bg-primary);
   display: flex;
   flex-direction: column;
+  transition: background-color 0.3s;
 }
 
 /* 工具栏 */
 .toolbar {
   padding: 15px 30px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-light);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.tool-left, .tool-right {
+.tool-left,
+.tool-right {
   display: flex;
   align-items: center;
-  gap: 12px; /* 按钮间距 */
+  gap: 12px;
+  /* 按钮间距 */
 }
 
 .tool-btn {
   background: none;
   border: none;
   font-size: 16px;
-  color: #444; /* 稍微深一点的灰色 */
+  color: var(--text-secondary);
+  /* 稍微深一点的灰色 */
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
@@ -329,7 +440,10 @@ li {
   height: 28px;
   min-width: 28px;
 }
-.tool-btn:hover { background-color: #f0f0f0; }
+
+.tool-btn:hover {
+  background-color: var(--bg-hover);
+}
 
 /* H1 H2 文字图标样式 */
 .text-icon {
@@ -340,7 +454,7 @@ li {
 
 /* 分割线 */
 .divider {
-  color: #e0e0e0;
+  color: var(--border-color);
   font-size: 14px;
   margin: 0 4px;
 }
@@ -348,19 +462,22 @@ li {
 /* 编辑区 */
 .editor-container {
   flex: 1;
-  padding: 40px 60px; /* 大留白 */
+  padding: 40px 60px;
+  /* 大留白 */
   display: flex;
   flex-direction: column;
 }
 
 #note-title {
-  font-size: 32px; /* 更大的标题 */
+  font-size: 32px;
+  /* 更大的标题 */
   font-weight: bold;
   border: none;
   outline: none;
   width: 100%;
   margin-bottom: 30px;
-  color: #222;
+  color: var(--text-primary);
+  background: transparent;
 }
 
 #note-content {
@@ -371,7 +488,8 @@ li {
   resize: none;
   font-size: 16px;
   line-height: 1.8;
-  color: #333;
+  color: var(--text-primary);
+  background: transparent;
 }
 
 /* ============================
@@ -384,6 +502,7 @@ li {
 }
 
 @media (max-width: 768px) {
+
   /* 1. 开启手机专用按钮 */
   .mobile-only {
     display: inline-flex;
@@ -400,14 +519,16 @@ li {
   /* 2. 侧边栏：变成抽屉式，默认隐藏在左边 */
   .sidebar {
     position: fixed;
-    left: -100%; /* 藏在屏幕外 */
+    left: -100%;
+    /* 藏在屏幕外 */
     top: 0;
     height: 100%;
     width: 280px;
     z-index: 1000;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
     transition: left 0.3s ease;
   }
+
   /* 激活时显示 */
   .sidebar.open {
     left: 0;
@@ -423,13 +544,15 @@ li {
   .editor-view {
     position: fixed;
     top: 0;
-    left: 100%; /* 藏在屏幕右侧 */
+    left: 100%;
+    /* 藏在屏幕右侧 */
     width: 100%;
     height: 100%;
     transition: left 0.3s ease;
-    z-index: 500; /* 盖住列表 */
+    z-index: 500;
+    /* 盖住列表 */
   }
-  
+
   /* 当应用处于“编辑模式”时，编辑器滑入 */
   .app.mobile-editing .editor-view {
     left: 0;
