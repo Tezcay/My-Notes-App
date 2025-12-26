@@ -373,3 +373,65 @@ li {
   line-height: 1.8;
   color: #333;
 }
+
+/* ============================
+   📱 手机端适配 (Responsive)
+   ============================ */
+
+/* 默认隐藏手机专用按钮 */
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* 1. 开启手机专用按钮 */
+  .mobile-only {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #666;
+    cursor: pointer;
+    padding: 0 10px;
+  }
+
+  /* 2. 侧边栏：变成抽屉式，默认隐藏在左边 */
+  .sidebar {
+    position: fixed;
+    left: -100%; /* 藏在屏幕外 */
+    top: 0;
+    height: 100%;
+    width: 280px;
+    z-index: 1000;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    transition: left 0.3s ease;
+  }
+  /* 激活时显示 */
+  .sidebar.open {
+    left: 0;
+  }
+
+  /* 3. 列表页：默认占满全屏 */
+  .list-view {
+    width: 100%;
+    border-right: none;
+  }
+
+  /* 4. 编辑器：默认藏在右边，激活时覆盖上来 */
+  .editor-view {
+    position: fixed;
+    top: 0;
+    left: 100%; /* 藏在屏幕右侧 */
+    width: 100%;
+    height: 100%;
+    transition: left 0.3s ease;
+    z-index: 500; /* 盖住列表 */
+  }
+  
+  /* 当应用处于“编辑模式”时，编辑器滑入 */
+  .app.mobile-editing .editor-view {
+    left: 0;
+  }
+}
