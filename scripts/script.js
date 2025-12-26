@@ -69,10 +69,11 @@ notes.forEach(note => {
 saveAllToLocalStorage(); // 保存修正后的数据
 
 // 当前状态
-let currentCategoryId = "all";
-let currentNoteId = null;
+let currentCategoryId = "all"; // 当前选中的分类ID，默认'all'
+let currentNoteId = null; // 当前选中的笔记ID
+let currentSearchKeyword = ''; // 当前搜索关键词
 
-// DOM元素获取
+// --- DOM元素获取 ---
 
 // 侧边栏相关
 const sidebar = document.querySelector('.sidebar'); // 左侧整个侧边栏(用于事件委托)
@@ -92,7 +93,7 @@ const deleteBtn = document.querySelector('.delete-btn'); // 右上角的删除�
 const editorTitle = document.getElementById('note-title');
 const editorContent = document.getElementById('note-content');
 
-// 核心功能函数
+// --- 核心功能函数 ---
 
 // 保存数据到 LocalStorage
 // 每次数据变更后调用
@@ -150,6 +151,20 @@ function formatTime(timestamp) {
   }
 }
 
+// 渲染函数
+// 关键词高亮工具
+// @param {string} text - 原文本
+// @param {string} keyword - 搜索词
+function highlightText(text, keyword) {
+  // 如果没搜词，直接返回原文本
+  if (!keyword) return text;
+  
+  // 使用正则进行替换 (gi 表示全局 + 忽略大小写)
+  const regex = new RegExp(`(${keyword})`, 'gi');
+  
+  // 把匹配到的部分变成 绿色+加粗
+  return text.replace(regex, '<span style="color: #10B981; font-weight: bold;">$1</span>');
+}
 
 // 渲染左侧"我的文件夹"列表
 function renderFolderList() {
@@ -187,75 +202,69 @@ function renderFolderList() {
 
 // 渲染中间笔记列表
 function renderNoteList() {
-  // 1. 筛选数据
+  // 1. 联合筛选：既要符合“分类”，又要符合“搜索词”
   const filteredNotes = notes.filter(note => {
-    /* // 如果是'all'分类，返回所有笔记
-    if (currentCategoryId === "all") return true;
-    // 特殊逻辑：如果是待办，这里暂时不做处理，留给未来扩展
-    // 否则返回匹配当前分类的笔记
-    return note.categoryId === currentCategoryId; */
+    // A. 搜索词筛选
+    // 把标题和内容拼在一起搜，只要有一个包含关键词就算匹配
+    const contentToSearch = (note.title + note.content).toLowerCase();
+    const keyword = currentSearchKeyword.toLowerCase();
+    
+    // 如果搜不到，直接淘汰
+    if (!contentToSearch.includes(keyword)) return false;
 
-    // 如果是trash(最近删除)，只返回已删除的笔记
-    if (currentCategoryId === "trash") {
-      return note.categoryId === "trash";
-    }
-
-    // 如果是其他分类，首先排除掉 trash 的笔记
+    // B. 分类筛选 (保留之前的逻辑)
+    if (currentCategoryId === "trash") return note.categoryId === "trash";
     if (note.categoryId === "trash") return false;
-
-    // 如果是'all'分类，返回所有当前(非删除)笔记
     if (currentCategoryId === "all") return true;
-
-    // 特殊逻辑：如果是待办，这里暂时不做处理，留给未来扩展
-
-    // 否则返回匹配当前分类的笔记
     return note.categoryId === currentCategoryId;
   });
 
-  // 2. 更新顶部统计信息
+  // 2. 更新顶部统计
   if (noteCountEl) {
     noteCountEl.textContent = `共 ${filteredNotes.length} 条笔记`;
   }
 
-  // 3. 清空现有列表
+  // 3. 清空列表
   noteListEl.innerHTML = '';
 
-  // 4. 空状态美化 (Empty State)
+  // 4. 空状态处理
   if (filteredNotes.length === 0) {
-    // 根据是否在回收站，显示不同的图标和文字
-    const emptyIcon = currentCategoryId === 'trash' ? 'fa-trash-can' : 'fa-box-open';
-    const emptyText = currentCategoryId === 'trash' ? '回收站里没有笔记' : '这里空空如也，快去记点什么吧';
-
-    noteListEl.innerHTML = `
-      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #ccc; padding-top: 60px;">
-        <i class="fa-solid ${emptyIcon}" style="font-size: 64px; margin-bottom: 20px; opacity: 0.5;"></i>
-        <div style="font-size: 14px;">${emptyText}</div>
-      </div>`;
+    // 如果是因为搜索没结果
+    if (currentSearchKeyword) {
+        noteListEl.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">未搜索到相关笔记</div>';
+    } else {
+        // 之前的空状态逻辑
+        const emptyIcon = currentCategoryId === 'trash' ? 'fa-trash-can' : 'fa-box-open';
+        const emptyText = currentCategoryId === 'trash' ? '回收站里没有笔记' : '这里空空如也，快去记点什么吧';
+        noteListEl.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #ccc; padding-top: 60px;">
+            <i class="fa-solid ${emptyIcon}" style="font-size: 64px; margin-bottom: 20px; opacity: 0.5;"></i>
+            <div style="font-size: 14px;">${emptyText}</div>
+          </div>`;
+    }
     return;
   }
 
+  // 5. 生成列表 (带高亮!)
   filteredNotes.forEach(note => {
-    // 创建 li 元素
     const li = document.createElement('li');
     li.className = 'note-item';
+    if (note.id === currentNoteId) li.classList.add('active');
 
-    // 如果是当前选中的笔记，添加 active 类
-    if (note.id === currentNoteId) {
-      li.classList.add('active');
-    }
+    // 🔥 关键点：调用 highlightText 处理标题和预览
+    const displayTitle = highlightText(note.title || '无标题', currentSearchKeyword);
+    const displayContent = highlightText(note.content || '无内容', currentSearchKeyword);
 
-    // 设置内部 HTML
     li.innerHTML = `
-      <div class="note-title">${note.title || '无标题'}</div>
-      <div class="note-preview">${note.content || '无内容'}</div>
+      <div class="note-title">${displayTitle}</div>
+      <div class="note-preview">${displayContent}</div>
       <div class="note-date">${formatTime(note.updateTime)}</div>
     `;
 
-    // 绑定点击事件：点击列表项，切换右侧显示
     li.addEventListener('click', () => {
       currentNoteId = note.id;
-      renderNoteList(); // 重新渲染列表以更新选中状态
-      loadNoteToEditor(note); // 加载笔记到编辑器
+      renderNoteList(); 
+      loadNoteToEditor(note);
     });
 
     noteListEl.appendChild(li);
@@ -524,23 +533,14 @@ if (deleteBtn) {
   });
 }
 
-//  G. 搜索功能
+// G. 搜索功能
 if (searchInput) {
   searchInput.addEventListener('input', (e) => {
-    const keyword = e.target.value.toLowerCase();
-
-    // 在当前 DOM 中筛选显示笔记
-    const noteItems = document.querySelectorAll('.note-item');
-    noteItems.forEach(item => {
-      const title = item.querySelector('.note-title').textContent.toLowerCase();
-      const content = item.querySelector('.note-preview').textContent.toLowerCase();
-
-      if (title.includes(keyword) || content.includes(keyword)) {
-        item.style.display = 'block';
-      } else {
-        item.style.display = 'none';
-      }
-    });
+    // 1. 更新全局搜索词状态
+    currentSearchKeyword = e.target.value.trim();
+    
+    // 2. 重新渲染列表 (renderNoteList 会自己去读 currentSearchKeyword)
+    renderNoteList();
   });
 }
 
