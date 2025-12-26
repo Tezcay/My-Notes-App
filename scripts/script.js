@@ -220,9 +220,17 @@ function renderNoteList() {
   // 3. 清空现有列表
   noteListEl.innerHTML = '';
 
-  // 4. 生成 HTML
+  // 4. 空状态美化 (Empty State)
   if (filteredNotes.length === 0) {
-    noteListEl.innerHTML = '<div style="text-align:center; color:#999; padding:20px; font-size:14px;">暂无笔记</div>';
+    // 根据是否在回收站，显示不同的图标和文字
+    const emptyIcon = currentCategoryId === 'trash' ? 'fa-trash-can' : 'fa-box-open';
+    const emptyText = currentCategoryId === 'trash' ? '回收站里没有笔记' : '这里空空如也，快去记点什么吧';
+
+    noteListEl.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #ccc; padding-top: 60px;">
+        <i class="fa-solid ${emptyIcon}" style="font-size: 64px; margin-bottom: 20px; opacity: 0.5;"></i>
+        <div style="font-size: 14px;">${emptyText}</div>
+      </div>`;
     return;
   }
 
