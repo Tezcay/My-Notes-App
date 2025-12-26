@@ -35,29 +35,38 @@ let notes = [
 // 数据定义 模拟数据库 + LocalStorage
 // 定义一个默认的初始数据集
 const defaultNotes = [
-  { 
-    id: 1, 
-    title: "欢迎使用", 
-    content: "试着新建一个文件夹，把这条笔记拖进去（假装拖拽，其实是移动）...", 
-    updateTime: "刚刚", 
-    categoryId: "uncategorized" 
+  {
+    id: 1,
+    title: "欢迎使用",
+    content: "试着新建一个文件夹，把这条笔记拖进去（假装拖拽，其实是移动）...",
+    updateTime: Date.now(),
+    categoryId: "uncategorized"
   }
 ];
 
 const defaultCategories = [
-  { 
-    id: "folder-work", 
-    name: "工作资料" 
+  {
+    id: "folder-work",
+    name: "工作资料"
   },
-  { 
-    id: "folder-study", 
-    name: "学习笔记" 
+  {
+    id: "folder-study",
+    name: "学习笔记"
   }
 ];
+
 // 优先从 LocalStorage 获取数据
 // 如果没有数据，则使用默认数据
 let notes = JSON.parse(localStorage.getItem('notes')) || defaultNotes;
 let categories = JSON.parse(localStorage.getItem('categories')) || defaultCategories;
+
+// 数据迁移：将旧的 "刚刚" 字符串转换为当前时间戳，以便启用相对时间功能
+notes.forEach(note => {
+  if (note.updateTime === '刚刚') {
+    note.updateTime = Date.now();
+  }
+});
+saveAllToLocalStorage(); // 保存修正后的数据
 
 // 当前状态
 let currentCategoryId = "all";
@@ -96,31 +105,47 @@ function saveAllToLocalStorage() {
 // @param {number} timestamp 毫秒时间戳
 // @return {string} 格式化后的时间字符串
 function formatTime(timestamp) {
-  // 兼容旧数据
+  // 兼容旧数据：如果是字符串且无法转为有效日期（例如 "刚刚"），直接返回
   if (typeof timestamp === 'string') {
-    return timestamp;
+    const parsed = Date.parse(timestamp);
+    if (isNaN(parsed)) {
+      return timestamp;
+    }
   }
 
   const date = new Date(timestamp);
+  if (isNaN(date.getTime())) return timestamp; // 双重保险
+
   const now = new Date();
-  
-  const isToday = date.getDate === now.getDate() && 
-                  date.getMonth() === now.getMonth() && 
-                  date.getFullYear() === now.getFullYear();
+  const diff = now - date; // Time difference in milliseconds
+
+  // Less than 1 minute: Just now
+  if (diff < 60 * 1000) {
+    return '刚刚';
+  }
+
+  // Less than 1 hour: xx minutes ago
+  if (diff < 60 * 60 * 1000) {
+    return Math.floor(diff / (60 * 1000)) + '分钟前';
+  }
+
+  const isToday = date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear();
 
   const isThisYear = date.getFullYear() === now.getFullYear();
 
-  // 补全函数：例如 9 -> '09'
+  // Helper: pad with zero
   const pad = (n) => n < 10 ? '0' + n : n;
 
   if (isToday) {
-    // 如果是今天，只显示时间
+    // Today: HH:MM
     return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
   } else if (isThisYear) {
-    // 如果是今年，显示 月/日
+    // This Year: MM/DD
     return `${pad(date.getMonth() + 1)}/${pad(date.getDate())}`;
   } else {
-    // 跨年，显示 年/月/日
+    // Other: YYYY/MM/DD
     return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())}`;
   }
 }
@@ -359,16 +384,16 @@ if (addNoteBtn) {
     }
 
     const newNote = {
-      id: newId, 
+      id: newId,
       title: '新建笔记',
       content: '',
-      updateTime: '刚刚',
+      updateTime: Date.now(),
       // 如果当前分类是'all'，则默认分类为'uncategorized', 否则为当前分类
-      categoryId: targetCategoryId 
+      categoryId: targetCategoryId
     };
 
     // 2. 添加到数据数组最前面
-    notes.unshift(newNote); 
+    notes.unshift(newNote);
     // 保存数据到 LocalStorage
     saveAllToLocalStorage();
 
