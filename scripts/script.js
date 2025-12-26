@@ -92,6 +92,40 @@ function saveAllToLocalStorage() {
   localStorage.setItem('categories', JSON.stringify(categories));
 }
 
+// 时间格式化函数
+// @param {number} timestamp 毫秒时间戳
+// @return {string} 格式化后的时间字符串
+function formatTime(timestamp) {
+  // 兼容旧数据
+  if (typeof timestamp === 'string') {
+    return timestamp;
+  }
+
+  const date = new Date(timestamp);
+  const now = new Date();
+  
+  const isToday = date.getDate === now.getDate() && 
+                  date.getMonth() === now.getMonth() && 
+                  date.getFullYear() === now.getFullYear();
+
+  const isThisYear = date.getFullYear() === now.getFullYear();
+
+  // 补全函数：例如 9 -> '09'
+  const pad = (n) => n < 10 ? '0' + n : n;
+
+  if (isToday) {
+    // 如果是今天，只显示时间
+    return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  } else if (isThisYear) {
+    // 如果是今年，显示 月/日
+    return `${pad(date.getMonth() + 1)}/${pad(date.getDate())}`;
+  } else {
+    // 跨年，显示 年/月/日
+    return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())}`;
+  }
+}
+
+
 // 渲染左侧"我的文件夹"列表
 function renderFolderList() {
   // 清空现有列表
@@ -165,7 +199,7 @@ function renderNoteList() {
     li.innerHTML = `
       <div class="note-title">${note.title || '无标题'}</div>
       <div class="note-preview">${note.content || '无内容'}</div>
-      <div class="note-date">${note.updateTime}</div>
+      <div class="note-date">${formatTime(note.updateTime)}</div>
     `;
 
     // 绑定点击事件：点击列表项，切换右侧显示
@@ -367,7 +401,7 @@ if (addNoteBtn) {
       // 更新数据
       currentNote.title = editorTitle.value;
       currentNote.content = editorContent.value;
-      currentNote.updateTime = '刚刚'; // 简化处理
+      currentNote.updateTime = Date.now(); // 存时间戳
 
       // 保存数据到 LocalStorage
       saveAllToLocalStorage();
