@@ -189,9 +189,25 @@ function renderFolderList() {
 function renderNoteList() {
   // 1. 筛选数据
   const filteredNotes = notes.filter(note => {
-    // 如果是'all'分类，返回所有笔记
+    /* // 如果是'all'分类，返回所有笔记
     if (currentCategoryId === "all") return true;
     // 特殊逻辑：如果是待办，这里暂时不做处理，留给未来扩展
+    // 否则返回匹配当前分类的笔记
+    return note.categoryId === currentCategoryId; */
+
+    // 如果是trash(最近删除)，只返回已删除的笔记
+    if (currentCategoryId === "trash") {
+      return note.categoryId === "trash";
+    }
+
+    // 如果是其他分类，首先排除掉 trash 的笔记
+    if (note.categoryId === "trash") return false;
+
+    // 如果是'all'分类，返回所有当前(非删除)笔记
+    if (currentCategoryId === "all") return true;
+
+    // 特殊逻辑：如果是待办，这里暂时不做处理，留给未来扩展
+
     // 否则返回匹配当前分类的笔记
     return note.categoryId === currentCategoryId;
   });
@@ -448,7 +464,7 @@ if (deleteBtn) {
       return;
     }
 
-    // 确认删除
+   /*  // 确认删除
     if (confirm('确定要删除这条笔记吗？')) {
       // 1. 从数据数组中删除笔记
       notes = notes.filter(n => n.id !== currentNoteId);
@@ -462,7 +478,41 @@ if (deleteBtn) {
 
       // 3. 重新渲染笔记列表
       renderNoteList();
-    }
+    } */
+
+      const currentNote = notes.find(n => n.id === currentNoteId);
+      if (!currentNote) return;
+
+      // 删除分支逻辑
+
+      // A. 如果当前分类是"trash"，则永久删除
+      if (currentCategoryId === "trash") {
+        if (confirm('确定要永久删除这条笔记吗? 此操作无法撤销')) {
+          // 永久删除
+          notes = notes.filter(n => n.id !== currentNoteId);
+          saveAllToLocalStorage();
+
+          // 清除当前选中状态
+          currentNoteId = null;
+          editorTitle.value = '';
+          editorContent.value = '';
+          renderNoteList();
+        }
+        return; // 取消删除
+      }
+      
+      // B. 否则，移动到"trash"分类
+      if (confirm('确定要将笔记移动到回收站吗? ')) {
+        currentNote.categoryId = "trash"; // 只是修改标签
+        currentNote.updateTime = Date.now(); // 更新时间
+        saveAllToLocalStorage();
+
+        // 清除当前选中状态
+        currentNoteId = null;
+        editorTitle.value = '';
+        editorContent.value = '';
+        renderNoteList();
+      }
   });
 }
 
