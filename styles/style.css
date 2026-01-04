@@ -195,24 +195,33 @@ li {
 /* 搜索框 */
 .search-box {
   position: relative;
-  flex: 1; /* 占据剩余空间 */
+  flex: 1;
+  /* 占据剩余空间 */
 }
+
 .search-box input {
   width: 100%;
   height: 36px;
   padding: 0 15px 0 34px;
-  background-color: #f4f4f4; /* 浅灰背景 */
+  background-color: #f4f4f4;
+  /* 浅灰背景 */
   border: 1px solid transparent;
-  border-radius: 6px; /* 小圆角 */
+  border-radius: 6px;
+  /* 小圆角 */
   outline: none;
   font-size: 14px;
   box-sizing: border-box;
 }
-.search-box input:hover { background-color: #f0f0f0; }
-.search-box input:focus { 
-  background-color: #fff; 
-  border-color: #f5a623; 
+
+.search-box input:hover {
+  background-color: #f0f0f0;
 }
+
+.search-box input:focus {
+  background-color: #fff;
+  border-color: #f5a623;
+}
+
 .search-icon {
   position: absolute;
   left: 10px;
@@ -235,11 +244,18 @@ li {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(245, 166, 35, 0.4); /* 投影 */
+  box-shadow: 0 2px 6px rgba(245, 166, 35, 0.4);
+  /* 投影 */
   transition: transform 0.1s;
 }
-.add-circle-btn:hover { background-color: #e0961f; }
-.add-circle-btn:active { transform: scale(0.95); }
+
+.add-circle-btn:hover {
+  background-color: #e0961f;
+}
+
+.add-circle-btn:active {
+  transform: scale(0.95);
+}
 
 /* 状态栏 (共xx条...) */
 .list-stats-bar {
@@ -250,24 +266,34 @@ li {
   color: #999;
   border-bottom: 1px solid #f0f0f0;
 }
-.sort-action { cursor: pointer; }
-.sort-action:hover { color: #666; }
+
+.sort-action {
+  cursor: pointer;
+}
+
+.sort-action:hover {
+  color: #666;
+}
 
 /* 列表项 */
 .note-list {
   flex: 1;
   overflow-y: auto;
 }
+
 .note-item {
   padding: 15px 24px;
   border-bottom: 1px solid #f9f9f9;
   cursor: pointer;
 }
-.note-item:hover { background-color: #fafafa; }
+
+.note-item:hover {
+  background-color: #fafafa;
+}
 
 /* 截图中的选中态：背景变灰，没有左侧黄条 */
 .note-item.active {
-  background-color: #f2f2f2; 
+  background-color: #f2f2f2;
 }
 
 .note-title {
@@ -276,6 +302,7 @@ li {
   color: #333;
   margin-bottom: 4px;
 }
+
 .note-preview {
   font-size: 13px;
   color: #666;
@@ -284,6 +311,7 @@ li {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .note-date {
   font-size: 12px;
   color: #ccc;
@@ -309,17 +337,20 @@ li {
   align-items: center;
 }
 
-.tool-left, .tool-right {
+.tool-left,
+.tool-right {
   display: flex;
   align-items: center;
-  gap: 12px; /* 按钮间距 */
+  gap: 12px;
+  /* 按钮间距 */
 }
 
 .tool-btn {
   background: none;
   border: none;
   font-size: 16px;
-  color: #444; /* 稍微深一点的灰色 */
+  color: #444;
+  /* 稍微深一点的灰色 */
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
@@ -329,7 +360,10 @@ li {
   height: 28px;
   min-width: 28px;
 }
-.tool-btn:hover { background-color: #f0f0f0; }
+
+.tool-btn:hover {
+  background-color: #f0f0f0;
+}
 
 /* H1 H2 文字图标样式 */
 .text-icon {
@@ -348,13 +382,15 @@ li {
 /* 编辑区 */
 .editor-container {
   flex: 1;
-  padding: 40px 60px; /* 大留白 */
+  padding: 40px 60px;
+  /* 大留白 */
   display: flex;
   flex-direction: column;
 }
 
 #note-title {
-  font-size: 32px; /* 更大的标题 */
+  font-size: 32px;
+  /* 更大的标题 */
   font-weight: bold;
   border: none;
   outline: none;
@@ -372,4 +408,71 @@ li {
   font-size: 16px;
   line-height: 1.8;
   color: #333;
+}
+
+/* ============================
+   📱 手机端适配 (Responsive)
+   ============================ */
+
+/* 默认隐藏手机专用按钮 */
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 768px) {
+
+  /* 1. 开启手机专用按钮 */
+  .mobile-only {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #666;
+    cursor: pointer;
+    padding: 0 10px;
+  }
+
+  /* 2. 侧边栏：变成抽屉式，默认隐藏在左边 */
+  .sidebar {
+    position: fixed;
+    left: -100%;
+    /* 藏在屏幕外 */
+    top: 0;
+    height: 100%;
+    width: 280px;
+    z-index: 1000;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    transition: left 0.3s ease;
+  }
+
+  /* 激活时显示 */
+  .sidebar.open {
+    left: 0;
+  }
+
+  /* 3. 列表页：默认占满全屏 */
+  .list-view {
+    width: 100%;
+    border-right: none;
+  }
+
+  /* 4. 编辑器：默认藏在右边，激活时覆盖上来 */
+  .editor-view {
+    position: fixed;
+    top: 0;
+    left: 100%;
+    /* 藏在屏幕右侧 */
+    width: 100%;
+    height: 100%;
+    transition: left 0.3s ease;
+    z-index: 500;
+    /* 盖住列表 */
+  }
+
+  /* 当应用处于"编辑模式"时，编辑器滑入 */
+  .app.mobile-editing .editor-view {
+    left: 0;
+  }
 }

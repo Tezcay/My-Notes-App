@@ -265,6 +265,9 @@ function renderNoteList() {
       currentNoteId = note.id;
       renderNoteList(); // 重新渲染列表以更新选中状态
       loadNoteToEditor(note); // 加载笔记到编辑器
+
+      // 手机端自动进入编辑模式
+      document.querySelector('.app').classList.add('mobile-editing');
     });
 
     noteListEl.appendChild(li);
@@ -556,3 +559,34 @@ if (searchInput) {
 // 5. 初始化
 renderFolderList();
 renderNoteList();
+
+//  --- 手机端适配逻辑 (Mobile Logic) --- 
+
+const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+const mobileBackBtn = document.getElementById('mobile-back-btn');
+const appContainer = document.querySelector('.app');
+
+// 1. 点击菜单按钮 -> 切换侧边栏
+if (mobileMenuBtn) {
+  mobileMenuBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('open');
+  });
+}
+
+// 2. 点击侧边栏里的任意项 -> 自动收起侧边栏
+sidebar.addEventListener('click', (e) => {
+  if (window.innerWidth <= 768 && e.target.closest('.nav-item')) {
+    sidebar.classList.remove('open');
+  }
+});
+
+// 3. 点击返回按钮 -> 退出编辑模式，回到列表
+if (mobileBackBtn) {
+  mobileBackBtn.addEventListener('click', () => {
+    appContainer.classList.remove('mobile-editing');
+    // 可选：清空选中状态
+    currentNoteId = null;
+    const activeItem = document.querySelector('.note-item.active');
+    if (activeItem) activeItem.classList.remove('active');
+  });
+}
