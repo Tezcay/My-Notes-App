@@ -149,7 +149,20 @@ function formatTime(timestamp) {
     return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())}`;
   }
 }
+// 渲染函数
+// 关键词高亮工具
+// @param {string} text - 原文本
+// @param {string} keyword - 搜索词
+function highlightText(text, keyword) {
+  // 如果没搜词，直接返回原文本
+  if (!keyword) return text;
 
+  // 使用正则进行替换 (gi 表示全局 + 忽略大小写)
+  const regex = new RegExp(`(${keyword})`, 'gi');
+
+  // 把匹配到的部分变成 绿色+加粗
+  return text.replace(regex, '<span style="color: #10B981; font-weight: bold;">$1</span>');
+}
 
 // 渲染左侧"我的文件夹"列表
 function renderFolderList() {
@@ -236,10 +249,14 @@ function renderNoteList() {
       li.classList.add('active');
     }
 
+    // 🔥 关键点：调用 highlightText 处理标题和预览
+    const displayTitle = highlightText(note.title || '无标题', currentSearchKeyword);
+    const displayContent = highlightText(note.content || '无内容', currentSearchKeyword);
+
     // 设置内部 HTML
     li.innerHTML = `
-      <div class="note-title">${note.title || '无标题'}</div>
-      <div class="note-preview">${note.content || '无内容'}</div>
+      <div class="note-title">${displayTitle}</div>
+      <div class="note-preview">${displayContent}</div>
       <div class="note-date">${formatTime(note.updateTime)}</div>
     `;
 
@@ -464,47 +481,32 @@ if (deleteBtn) {
       return;
     }
 
-   /*  // 确认删除
-    if (confirm('确定要删除这条笔记吗？')) {
-      // 1. 从数据数组中删除笔记
-      notes = notes.filter(n => n.id !== currentNoteId);
-      // 保存数据到 LocalStorage
-      saveAllToLocalStorage();
+    /*  // 确认删除
+     if (confirm('确定要删除这条笔记吗？')) {
+       // 1. 从数据数组中删除笔记
+       notes = notes.filter(n => n.id !== currentNoteId);
+       // 保存数据到 LocalStorage
+       saveAllToLocalStorage();
+ 
+       // 2. 清除当前选中状态
+       currentNoteId = null;
+       editorTitle.value = '';
+       editorContent.value = '';
+ 
+       // 3. 重新渲染笔记列表
+       renderNoteList();
+     } */
 
-      // 2. 清除当前选中状态
-      currentNoteId = null;
-      editorTitle.value = '';
-      editorContent.value = '';
+    const currentNote = notes.find(n => n.id === currentNoteId);
+    if (!currentNote) return;
 
-      // 3. 重新渲染笔记列表
-      renderNoteList();
-    } */
+    // 删除分支逻辑
 
-      const currentNote = notes.find(n => n.id === currentNoteId);
-      if (!currentNote) return;
-
-      // 删除分支逻辑
-
-      // A. 如果当前分类是"trash"，则永久删除
-      if (currentCategoryId === "trash") {
-        if (confirm('确定要永久删除这条笔记吗? 此操作无法撤销')) {
-          // 永久删除
-          notes = notes.filter(n => n.id !== currentNoteId);
-          saveAllToLocalStorage();
-
-          // 清除当前选中状态
-          currentNoteId = null;
-          editorTitle.value = '';
-          editorContent.value = '';
-          renderNoteList();
-        }
-        return; // 取消删除
-      }
-      
-      // B. 否则，移动到"trash"分类
-      if (confirm('确定要将笔记移动到回收站吗? ')) {
-        currentNote.categoryId = "trash"; // 只是修改标签
-        currentNote.updateTime = Date.now(); // 更新时间
+    // A. 如果当前分类是"trash"，则永久删除
+    if (currentCategoryId === "trash") {
+      if (confirm('确定要永久删除这条笔记吗? 此操作无法撤销')) {
+        // 永久删除
+        notes = notes.filter(n => n.id !== currentNoteId);
         saveAllToLocalStorage();
 
         // 清除当前选中状态
@@ -513,6 +515,21 @@ if (deleteBtn) {
         editorContent.value = '';
         renderNoteList();
       }
+      return; // 取消删除
+    }
+
+    // B. 否则，移动到"trash"分类
+    if (confirm('确定要将笔记移动到回收站吗? ')) {
+      currentNote.categoryId = "trash"; // 只是修改标签
+      currentNote.updateTime = Date.now(); // 更新时间
+      saveAllToLocalStorage();
+
+      // 清除当前选中状态
+      currentNoteId = null;
+      editorTitle.value = '';
+      editorContent.value = '';
+      renderNoteList();
+    }
   });
 }
 
