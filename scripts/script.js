@@ -745,14 +745,14 @@ const previewArea = document.getElementById('note-preview-area');
 
 if (previewBtn) {
   previewBtn.addEventListener('click', () => {
-    editorContainer.classList.toggle('preview-mode');
-    const isPreview = editorContainer.classList.contains('preview-mode');
+    editorContainer.classList.toggle('previewing-mode');
+    const isPreview = editorContainer.classList.contains('previewing-mode');
 
     if (isPreview) {
       // marked.parse() 将 Markdown 转换为 HTML
       previewArea.innerHTML = marked.parse(editorContent.value || '无内容');
       previewBtn.innerHTML = '<i class="fa-solid fa-pen"></i>'; // 换图标
-      
+
       // 修改悬浮提示
       previewBtn.title = "编辑模式";
 
@@ -764,8 +764,8 @@ if (previewBtn) {
       // 修改悬浮提示
       previewBtn.title = "预览模式";
 
-      editorTitle.disabled = false; 
-      editorContent.disabled = false; 
+      editorTitle.disabled = false;
+      editorContent.disabled = false;
     }
   });
 }
