@@ -69,10 +69,12 @@ notes.forEach(note => {
 saveAllToLocalStorage(); // 保存修正后的数据
 
 // 当前状态
-let currentCategoryId = "all";
-let currentNoteId = null;
+let currentCategoryId = "all"; // 当前选中的分类ID，默认'all'
+let currentNoteId = null; // 当前选中的笔记ID
+let currentSearchKeyword = ''; // 当前搜索关键词
+let currentSortMode = 'timeDesc'; // 当前排序模式: timeDesc, timeAsc, titleAsc
 
-// DOM元素获取
+// --- DOM元素获取 ---
 
 // 侧边栏相关
 const sidebar = document.querySelector('.sidebar'); // 左侧整个侧边栏(用于事件委托)
@@ -84,6 +86,7 @@ const listTitleEl = document.querySelector('.list-header-top h2'); // 中间顶�
 // 中间笔记列表相关
 const noteListEl = document.querySelector('.note-list'); // 中间笔记列表容器
 const noteCountEl = document.querySelector(".count-text"); // 中间共xx条笔记
+const sortActionBtn = document.querySelector('.sort-action'); // 排序按钮
 const searchInput = document.querySelector('.search-box input'); // 搜索输入框
 const addNoteBtn = document.querySelector('.add-circle-btn'); // 中间黄色的新增按钮
 
@@ -92,7 +95,7 @@ const deleteBtn = document.querySelector('.delete-btn'); // 右上角的删除�
 const editorTitle = document.getElementById('note-title');
 const editorContent = document.getElementById('note-content');
 
-// 核心功能函数
+// --- 核心功能函数 ---
 
 // 保存数据到 LocalStorage
 // 每次数据变更后调用
@@ -149,6 +152,7 @@ function formatTime(timestamp) {
     return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())}`;
   }
 }
+
 // 渲染函数
 // 关键词高亮工具
 // @param {string} text - 原文本
@@ -191,6 +195,21 @@ function renderFolderList() {
       handleDeleteFolder(category);
     });
 
+    // 🔥 拖放目标事件
+    li.addEventListener('dragover', (e) => {
+      e.preventDefault(); // 允许放置
+      li.classList.add('drag-over');
+    });
+    li.addEventListener('dragleave', () => {
+      li.classList.remove('drag-over');
+    });
+    li.addEventListener('drop', (e) => {
+      e.preventDefault();
+      li.classList.remove('drag-over');
+      const noteId = parseInt(e.dataTransfer.getData('text/plain'));
+      handleMoveNoteToCategory(noteId, category.id);
+    });
+
     folderListEl.appendChild(li);
   });
 
@@ -200,71 +219,93 @@ function renderFolderList() {
 
 // 渲染中间笔记列表
 function renderNoteList() {
-  // 1. 筛选数据
+  // 1. 联合筛选：既要符合“分类”，又要符合“搜索词”
   const filteredNotes = notes.filter(note => {
-    /* // 如果是'all'分类，返回所有笔记
-    if (currentCategoryId === "all") return true;
-    // 特殊逻辑：如果是待办，这里暂时不做处理，留给未来扩展
-    // 否则返回匹配当前分类的笔记
-    return note.categoryId === currentCategoryId; */
+    // A. 搜索词筛选
+    // 把标题和内容拼在一起搜，只要有一个包含关键词就算匹配
+    const contentToSearch = (note.title + note.content).toLowerCase();
+    const keyword = currentSearchKeyword.toLowerCase();
 
-    // 如果是trash(最近删除)，只返回已删除的笔记
-    if (currentCategoryId === "trash") {
-      return note.categoryId === "trash";
-    }
+    // 如果搜不到，直接淘汰
+    if (!contentToSearch.includes(keyword)) return false;
 
-    // 如果是其他分类，首先排除掉 trash 的笔记
+    // B. 分类筛选 (保留之前的逻辑)
+    if (currentCategoryId === "trash") return note.categoryId === "trash";
     if (note.categoryId === "trash") return false;
-
-    // 如果是'all'分类，返回所有当前(非删除)笔记
     if (currentCategoryId === "all") return true;
-
-    // 特殊逻辑：如果是待办，这里暂时不做处理，留给未来扩展
-
-    // 否则返回匹配当前分类的笔记
     return note.categoryId === currentCategoryId;
   });
 
-  // 2. 更新顶部统计信息
+  // 1.5 排序逻辑
+  filteredNotes.sort((a, b) => {
+    switch (currentSortMode) {
+      case 'timeDesc': // 时间倒序（最新在前）
+        return new Date(b.updateTime) - new Date(a.updateTime);
+      case 'timeAsc': // 时间正序（旧的在前）
+        return new Date(a.updateTime) - new Date(b.updateTime);
+      case 'titleAsc': // 标题 A-Z
+        return (a.title || '').localeCompare(b.title || '', 'zh-CN');
+      default:
+        return 0;
+    }
+  });
+
+  // 2. 更新顶部统计
   if (noteCountEl) {
     noteCountEl.textContent = `共 ${filteredNotes.length} 条笔记`;
   }
 
-  // 3. 清空现有列表
+  // 3. 清空列表
   noteListEl.innerHTML = '';
 
-  // 4. 生成 HTML
+  // 4. 空状态处理
   if (filteredNotes.length === 0) {
-    noteListEl.innerHTML = '<div style="text-align:center; color:#999; padding:20px; font-size:14px;">暂无笔记</div>';
+    // 如果是因为搜索没结果
+    if (currentSearchKeyword) {
+      noteListEl.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">未搜索到相关笔记</div>';
+    } else {
+      // 之前的空状态逻辑
+      const emptyIcon = currentCategoryId === 'trash' ? 'fa-trash-can' : 'fa-box-open';
+      const emptyText = currentCategoryId === 'trash' ? '回收站里没有笔记' : '这里空空如也，快去记点什么吧';
+      noteListEl.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #ccc; padding-top: 60px;">
+            <i class="fa-solid ${emptyIcon}" style="font-size: 64px; margin-bottom: 20px; opacity: 0.5;"></i>
+            <div style="font-size: 14px;">${emptyText}</div>
+          </div>`;
+    }
     return;
   }
 
+  // 5. 生成列表 (带高亮!)
   filteredNotes.forEach(note => {
-    // 创建 li 元素
     const li = document.createElement('li');
     li.className = 'note-item';
+    if (note.id === currentNoteId) li.classList.add('active');
 
-    // 如果是当前选中的笔记，添加 active 类
-    if (note.id === currentNoteId) {
-      li.classList.add('active');
-    }
+    // 🔥 设置可拖动
+    li.draggable = true;
+    li.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', note.id.toString());
+      li.classList.add('dragging');
+    });
+    li.addEventListener('dragend', () => {
+      li.classList.remove('dragging');
+    });
 
     // 🔥 关键点：调用 highlightText 处理标题和预览
     const displayTitle = highlightText(note.title || '无标题', currentSearchKeyword);
     const displayContent = highlightText(note.content || '无内容', currentSearchKeyword);
 
-    // 设置内部 HTML
     li.innerHTML = `
       <div class="note-title">${displayTitle}</div>
       <div class="note-preview">${displayContent}</div>
       <div class="note-date">${formatTime(note.updateTime)}</div>
     `;
 
-    // 绑定点击事件：点击列表项，切换右侧显示
     li.addEventListener('click', () => {
       currentNoteId = note.id;
-      renderNoteList(); // 重新渲染列表以更新选中状态
-      loadNoteToEditor(note); // 加载笔记到编辑器
+      renderNoteList();
+      loadNoteToEditor(note);
 
       // 手机端自动进入编辑模式
       document.querySelector('.app').classList.add('mobile-editing');
@@ -408,6 +449,31 @@ function handleDeleteFolder(category) {
   }
 }
 
+// C2. 移动笔记到指定分类（拖拽使用）
+function handleMoveNoteToCategory(noteId, categoryId) {
+  const note = notes.find(n => n.id === noteId);
+  if (!note) return;
+
+  // 如果已经在这个分类，不做任何操作
+  if (note.categoryId === categoryId) return;
+
+  // 🔥 特殊处理：拖入回收站时需要确认
+  if (categoryId === 'trash') {
+    if (!confirm(`确定要将笔记 "${note.title}" 移动到回收站吗? `)) {
+      return; // 用户取消
+    }
+  }
+
+  note.categoryId = categoryId;
+  note.updateTime = Date.now();
+  saveAllToLocalStorage();
+  renderNoteList();
+
+  // 可选：显示一个简短的提示
+  console.log(`笔记 "${note.title}" 已移动到新分类`);
+}
+
+
 // D. 新增笔记按钮点击事件
 if (addNoteBtn) {
   addNoteBtn.addEventListener('click', () => {
@@ -536,29 +602,34 @@ if (deleteBtn) {
   });
 }
 
-//  G. 搜索功能
+// G. 搜索功能
 if (searchInput) {
   searchInput.addEventListener('input', (e) => {
-    const keyword = e.target.value.toLowerCase();
+    // 1. 更新全局搜索词状态
+    currentSearchKeyword = e.target.value.trim();
 
-    // 在当前 DOM 中筛选显示笔记
-    const noteItems = document.querySelectorAll('.note-item');
-    noteItems.forEach(item => {
-      const title = item.querySelector('.note-title').textContent.toLowerCase();
-      const content = item.querySelector('.note-preview').textContent.toLowerCase();
-
-      if (title.includes(keyword) || content.includes(keyword)) {
-        item.style.display = 'block';
-      } else {
-        item.style.display = 'none';
-      }
-    });
+    // 2. 重新渲染列表 (renderNoteList 会自己去读 currentSearchKeyword)
+    renderNoteList();
   });
 }
 
-// 5. 初始化
-renderFolderList();
-renderNoteList();
+// H. 排序按钮点击事件 switch sort mode
+if (sortActionBtn) {
+  sortActionBtn.addEventListener('click', () => {
+    // Cycle: timeDesc -> timeAsc -> titleAsc -> timeDesc
+    if (currentSortMode === 'timeDesc') {
+      currentSortMode = 'timeAsc';
+      sortActionBtn.innerHTML = '按时间正序 <i class="fa-solid fa-arrow-up"></i>';
+    } else if (currentSortMode === 'timeAsc') {
+      currentSortMode = 'titleAsc';
+      sortActionBtn.innerHTML = '按标题名称 <i class="fa-solid fa-arrow-down-a-z"></i>';
+    } else {
+      currentSortMode = 'timeDesc';
+      sortActionBtn.innerHTML = '按编辑时间 <i class="fa-solid fa-caret-down"></i>';
+    }
+    renderNoteList();
+  });
+}
 
 //  --- 手机端适配逻辑 (Mobile Logic) --- 
 
@@ -588,5 +659,113 @@ if (mobileBackBtn) {
     currentNoteId = null;
     const activeItem = document.querySelector('.note-item.active');
     if (activeItem) activeItem.classList.remove('active');
+  });
+}
+
+// 5. 初始化
+renderFolderList();
+renderNoteList();
+
+// 6. 为静态导航项添加拖放目标功能（全部、未分类等）
+const staticNavItems = document.querySelectorAll('.nav-item[data-id]');
+staticNavItems.forEach(navItem => {
+  const categoryId = navItem.dataset.id;
+
+  // 跳过不能接收笔记的分类（如待办、私密等）
+  if (['all', 'todo-unfinished', 'todo-finished', 'private'].includes(categoryId)) return;
+
+  navItem.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    navItem.classList.add('drag-over');
+  });
+  navItem.addEventListener('dragleave', () => {
+    navItem.classList.remove('drag-over');
+  });
+  navItem.addEventListener('drop', (e) => {
+    e.preventDefault();
+    navItem.classList.remove('drag-over');
+    const noteId = parseInt(e.dataTransfer.getData('text/plain'));
+    handleMoveNoteToCategory(noteId, categoryId);
+  });
+});
+
+// === 主题切换逻辑 ===
+const themeToggleBtn = document.getElementById('theme-toggle-btn');
+
+// 初始化主题：从 localStorage 读取用户偏好
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    updateThemeIcon(true);
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    updateThemeIcon(false);
+  }
+}
+
+// 更新按钮图标
+function updateThemeIcon(isDark) {
+  if (themeToggleBtn) {
+    const icon = themeToggleBtn.querySelector('i');
+    if (isDark) {
+      icon.className = 'fa-solid fa-sun'; // 深色模式显示太阳
+    } else {
+      icon.className = 'fa-solid fa-moon'; // 浅色模式显示月亮
+    }
+  }
+}
+
+// 切换主题
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (isDark) {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('theme', 'light');
+    updateThemeIcon(false);
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('theme', 'dark');
+    updateThemeIcon(true);
+  }
+}
+
+// 绑定点击事件
+if (themeToggleBtn) {
+  themeToggleBtn.addEventListener('click', toggleTheme);
+}
+
+// 页面加载时初始化主题
+initTheme();
+
+// 预览功能
+const previewBtn = document.getElementById('preview-btn');
+const editorContainer = document.querySelector('.editor-container');
+const previewArea = document.getElementById('note-preview-area');
+
+if (previewBtn) {
+  previewBtn.addEventListener('click', () => {
+    editorContainer.classList.toggle('preview-mode');
+    const isPreview = editorContainer.classList.contains('preview-mode');
+
+    if (isPreview) {
+      // marked.parse() 将 Markdown 转换为 HTML
+      previewArea.innerHTML = marked.parse(editorContent.value || '无内容');
+      previewBtn.innerHTML = '<i class="fa-solid fa-pen"></i>'; // 换图标
+      
+      // 修改悬浮提示
+      previewBtn.title = "编辑模式";
+
+      editorTitle.disabled = true; // 预览时禁用标题
+      editorContent.disabled = true; // 预览时禁用内容
+    } else {
+      previewBtn.innerHTML = '<i class="fa-solid fa-eye"></i>'; // 换图标
+
+      // 修改悬浮提示
+      previewBtn.title = "预览模式";
+
+      editorTitle.disabled = false; 
+      editorContent.disabled = false; 
+    }
   });
 }
