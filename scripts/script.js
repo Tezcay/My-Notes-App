@@ -73,6 +73,7 @@ let currentCategoryId = "all"; // 当前选中的分类ID，默认'all'
 let currentNoteId = null; // 当前选中的笔记ID
 let currentSearchKeyword = ''; // 当前搜索关键词
 let currentSortMode = 'timeDesc'; // 当前排序模式: timeDesc, timeAsc, titleAsc
+let isLoadingNote = false; // 定义一个加载锁状态
 
 // --- DOM元素获取 ---
 
@@ -378,10 +379,10 @@ function switchCategory(id, name) {
 
   // 3. 清空编辑器
   editorTitle.value = '';
-  if(typeof easyMDE !== 'undefined') {
-      easyMDE.value("");
+  if (typeof easyMDE !== 'undefined') {
+    easyMDE.value("");
   }
-  
+
   // 4. 手机端自动收起侧边栏
   if (window.innerWidth <= 768) {
     sidebar.classList.remove('open');
@@ -464,7 +465,7 @@ function showModal(title, placeholder, callback) {
 
   modalOverlay.style.display = 'flex'; // 显示
   modalInput.focus(); // 自动聚焦
-  
+
   onModalConfirm = callback; // 把要做的事存起来
 }
 
@@ -501,8 +502,8 @@ if (modalInput) {
 // ===========================================
 if (addFolderBtn) {
   addFolderBtn.addEventListener('click', (e) => {
-    e.stopPropagation(); 
-    
+    e.stopPropagation();
+
     // 调用刚写的漂亮弹窗
     showModal('新建文件夹', '请输入文件夹名称', (folderName) => {
       // 这里是点确定后执行的逻辑 (和原来一样)
@@ -534,6 +535,37 @@ if (addFolderBtn) {
     }
   });
 } */
+
+// ===========================================
+// 🔒 定义一个锁，防止加载笔记时触发“修改事件”
+// ===========================================
+
+// B2. 加载笔记到编辑器 (修改版)
+function loadNoteToEditor(note) {
+  // 1. 上锁：告诉系统“正在加载，不是用户在打字”
+  isLoadingNote = true;
+
+  currentNoteId = note.id;
+
+  // 更新标题输入框
+  editorTitle.value = note.title;
+
+  // 更新编辑器内容
+  if (easyMDE) {
+    easyMDE.value(note.content || "");
+
+    // ⏳ 延迟解锁：等编辑器渲染完了，再把锁打开
+    // (这是为了防止 easyMDE 设置值时瞬间触发 change 事件)
+    setTimeout(() => {
+      isLoadingNote = false;
+    }, 200);
+  }
+
+  // 移动端逻辑 (保持不变)
+  const container = document.querySelector('.editor-container');
+  container.classList.remove('preview-mode');
+  editorTitle.disabled = false;
+}
 
 // C. 删除文件夹处理函数
 function handleDeleteFolder(category) {
@@ -586,11 +618,11 @@ function handleMoveNoteToCategory(noteId, categoryId) {
 }
 
 
-// D. 新增笔记按钮点击事件
+// D. 新增笔记按钮点击事件(新增：实时保存)
 if (addNoteBtn) {
   addNoteBtn.addEventListener('click', () => {
     // 1. 创建新笔记对象
-    const newId = Date.now(); // 使用时间戳作为唯一ID
+    const newId = String(Date.now()); // 使用时间戳作为唯一ID -> 转换为字符串
     // 确定新笔记的分类：如果是全部/未分类，归入未分类；否则归入当前选中的文件夹
     let targetCategoryId = currentCategoryId;
     if (currentCategoryId === "all" || currentCategoryId.startsWith('todo')) {
@@ -624,6 +656,29 @@ if (addNoteBtn) {
 
     // 6. 自动聚焦标题输入框, 方便直接输入
     editorTitle.focus();
+  });
+}
+
+// D2. 标题输入监听 (确保改名实时保存)
+if (editorTitle) {
+  editorTitle.addEventListener('input', (e) => {
+    if (currentNoteId) {
+      const note = notes.find(n => n.id === currentNoteId);
+      if (note) {
+        // 1. 更新内存数据
+        note.title = e.target.value;
+        note.updateTime = Date.now();
+
+        // 2. 🔥 存进硬盘！
+        saveAllToLocalStorage();
+
+        // 3. 只更新左侧列表里当前这一项的文字 (不重排列表)
+        const activeTitle = document.querySelector(`.note-item[data-id="${currentNoteId}"] .note-title`);
+        if (activeTitle) {
+          activeTitle.textContent = note.title || '无标题';
+        }
+      }
+    }
   });
 }
 
@@ -1003,23 +1058,23 @@ if (document.getElementById('note-content')) {
           const container = document.querySelector('.editor-container');
           const previewArea = document.getElementById('note-preview-area');
           const isPreview = container.classList.contains('preview-mode');
-          
+
           // 🔥 1. 找到预览按钮 (无论它现在是眼睛还是笔，都能找到)
-          const previewBtn = document.querySelector('.editor-toolbar .fa-eye') || 
-                             document.querySelector('.editor-toolbar .fa-pen');
+          const previewBtn = document.querySelector('.editor-toolbar .fa-eye') ||
+            document.querySelector('.editor-toolbar .fa-pen');
 
           if (isPreview) {
             // A. 退出预览 -> 变回编辑模式
             container.classList.remove('preview-mode');
             editorTitle.disabled = false;
-            
+
             // 🔄 图标变回“眼睛”
             if (previewBtn) {
-                previewBtn.classList.remove('fa-pen'); // 移除笔
-                previewBtn.classList.add('fa-eye');    // 加上眼睛
-                previewBtn.title = "预览";             // 提示文字也能改
+              previewBtn.classList.remove('fa-pen'); // 移除笔
+              previewBtn.classList.add('fa-eye');    // 加上眼睛
+              previewBtn.title = "预览";             // 提示文字也能改
             }
-            
+
           } else {
             // B. 进入预览模式
             container.classList.add('preview-mode');
@@ -1028,9 +1083,9 @@ if (document.getElementById('note-content')) {
 
             // 🔄 图标变成“笔” (代表去编辑)
             if (previewBtn) {
-                previewBtn.classList.remove('fa-eye'); // 移除眼睛
-                previewBtn.classList.add('fa-pen');    // 加上笔
-                previewBtn.title = "返回编辑";
+              previewBtn.classList.remove('fa-eye'); // 移除眼睛
+              previewBtn.classList.add('fa-pen');    // 加上笔
+              previewBtn.title = "返回编辑";
             }
           }
         },
@@ -1096,62 +1151,60 @@ if (document.getElementById('note-content')) {
     }
   }, 100);
 
-  // 数据同步逻辑
+  // ===========================================
+  // 💾 数据同步逻辑 (修复版：静默保存，不跳动)
+  // ===========================================
   easyMDE.codemirror.on("change", () => {
+    // 🔒 如果锁是锁着的，说明是系统在加载，不是人在打字，直接无视
+    if (isLoadingNote) return;
+
     const val = easyMDE.value();
     if (currentNoteId) {
-      const note = notes.find(n => n.id === currentNoteId);
+      const note = notes.find(n => n.id == currentNoteId); // 数字和字符串统一
       if (note) {
+        // 更新内容和时间
         note.content = val;
         note.updateTime = Date.now();
+
+        // 🔥 关键修改：只保存数据，不重绘列表！
+        // renderNoteList();  
+        // 这样你在打字时，左侧列表就不会动了。
+
         saveAllToLocalStorage();
-        // 更新列表显示
-        renderNoteList();
       }
     }
   });
 
   // 支持粘贴图片(Ctrl+V)
-  easyMDE.codemirror.on("paste", function(editor, e) {
-      if (!(e.clipboardData && e.clipboardData.items)) return;
-      for (let i = 0, len = e.clipboardData.items.length; i < len; i++) {
-          let item = e.clipboardData.items[i];
-          if (item.type.indexOf("image") !== -1) {
-              e.preventDefault();
-              let blob = item.getAsFile();
-              let reader = new FileReader();
-              reader.onload = function(event) {
-                  let base64 = event.target.result;
-                  let markdownImage = `\n![粘贴的图片](${base64})\n`;
-                  editor.replaceSelection(markdownImage);
-              };
-              reader.readAsDataURL(blob);
-              return;
-          }
+  easyMDE.codemirror.on("paste", function (editor, e) {
+    if (!(e.clipboardData && e.clipboardData.items)) return;
+    for (let i = 0, len = e.clipboardData.items.length; i < len; i++) {
+      let item = e.clipboardData.items[i];
+      if (item.type.indexOf("image") !== -1) {
+        e.preventDefault();
+        let blob = item.getAsFile();
+        let reader = new FileReader();
+        reader.onload = function (event) {
+          let base64 = event.target.result;
+          let markdownImage = `\n![粘贴的图片](${base64})\n`;
+          editor.replaceSelection(markdownImage);
+          reader.onload = function (event) {
+            let base64 = event.target.result;
+            let markdownImage = `\n![粘贴的图片](${base64})\n`;
+            editor.replaceSelection(markdownImage);
+
+            // 新增：粘贴完图片，立马触发一次保存！
+            // 手动触发 change 事件，让上面的同步逻辑工作
+            CodeMirror.signal(editor, "change", editor);
+          };
+        };
+        reader.readAsDataURL(blob);
+        return;
       }
+    }
   });
 }
 
-// 切换笔记逻辑
-function loadNoteToEditor(note) {
-  editorTitle.value = note.title;
-  if (easyMDE) {
-    // 退出预览模式
-    const container = document.querySelector('.editor-container');
-    if (container.classList.contains('preview-mode')) {
-      container.classList.remove('preview-mode');
-      editorTitle.disabled = false;
-    }
-
-    easyMDE.value(note.content || "");
-    // 刷新CodeMirror确保正确渲染
-    setTimeout(() => {
-      if (easyMDE.codemirror) {
-        easyMDE.codemirror.refresh();
-      }
-    }, 50);
-  }
-}
 
 const undoBtn = document.getElementById('undo-btn');
 
@@ -1215,16 +1268,16 @@ function handlePrivateAccess(targetId, targetName) {
 const noteTitleInput = document.getElementById('note-title');
 
 if (noteTitleInput) {
-    noteTitleInput.addEventListener('keydown', (e) => {
-        // 监听 "ArrowDown"(下箭头) 和 "Enter"(回车)
-        if (e.key === 'ArrowDown' || e.key === 'Enter') {
-            e.preventDefault(); // 阻止默认行为 (比如回车不用真的在标题里换行)
-            
-            // 检查编辑器是否存在
-            if (typeof easyMDE !== 'undefined' && easyMDE.codemirror) {
-                easyMDE.codemirror.focus(); // 🔥 核心：聚焦到编辑器
-                easyMDE.codemirror.setCursor(0, 0); // (可选) 把光标定在正文开头
-            }
-        }
-    });
+  noteTitleInput.addEventListener('keydown', (e) => {
+    // 监听 "ArrowDown"(下箭头) 和 "Enter"(回车)
+    if (e.key === 'ArrowDown' || e.key === 'Enter') {
+      e.preventDefault(); // 阻止默认行为 (比如回车不用真的在标题里换行)
+
+      // 检查编辑器是否存在
+      if (typeof easyMDE !== 'undefined' && easyMDE.codemirror) {
+        easyMDE.codemirror.focus(); // 🔥 核心：聚焦到编辑器
+        easyMDE.codemirror.setCursor(0, 0); // (可选) 把光标定在正文开头
+      }
+    }
+  });
 }
