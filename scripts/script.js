@@ -784,7 +784,7 @@ staticNavItems.forEach(navItem => {
   const categoryId = navItem.dataset.id;
 
   // 跳过不能接收笔记的分类（如待办、私密等）
-  if (['all', 'todo-unfinished', 'todo-finished', 'private'].includes(categoryId)) return;
+  if (['all', 'todo-unfinished', 'todo-finished'].includes(categoryId)) return;
 
   navItem.addEventListener('dragover', (e) => {
     e.preventDefault();
@@ -1135,11 +1135,27 @@ function handlePrivateAccess(targetId, targetName) {
 
   if (!savedPassword) {
     // a. 如果没有存过 -> 第一次使用，提示设置密码
-    showModal('设置私密密码', '请设置一个访问密码(请牢记)', (inputVal) => {
-      if (inputVal) {
+    showModal('设置私密密码', '请设置4-10位访问密码(请牢记)', (inputVal) => {
+      if (!inputVal) {
+        alert("密码不能为空!");
+        return;
+      }
+
+      // 新增：长度限制
+      if (inputVal.length < 4 || inputVal.length > 10) {
+        alert("密码长度必须在 4 到 10 之间");
+        // 重新弹窗让用户设置(简单粗暴的重试机制)
+        setTimeout(() => handlePrivateAccess(targetId, targetName), 100);
+        return;
+      }
+
+      localStorage.setItem('private_password', inputVal);
+      alert('密码设置成功, 请牢记!');
+      switchCategory(targetId, targetName);
+      /* if (inputVal) {
         localStorage.setItem('private_password', inputVal);
         switchCategory(targetId, targetName); // 设置完直接进入
-      }
+      } */
     });
 
   } else {
@@ -1148,7 +1164,7 @@ function handlePrivateAccess(targetId, targetName) {
       if (inputVal === savedPassword) {
         switchCategory(targetId, targetName);
       } else {
-        alert('密码错误！');
+        alert('密码错误, 请重试!');
       }
     });
   }
