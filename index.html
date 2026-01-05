@@ -7,6 +7,8 @@
   <title>My-Notes-App</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
   <link rel="stylesheet" href="styles/style.css">
 </head>
 
@@ -104,7 +106,7 @@
 
     <main class="editor-view">
       <div class="toolbar">
-        <div class="tool-left">
+        <!-- <div class="tool-left">
           <button class="tool-btn mobile-only" id="mobile-back-btn" style="margin-right: 10px;"><i
               class="fa-solid fa-arrow-left"></i></button>
 
@@ -132,20 +134,20 @@
 
           <button class="tool-btn"><i class="fa-solid fa-align-left"></i></button>
           <button class="tool-btn" style="color: #f5a623;"><i class="fa-solid fa-font"></i></button>
-        </div>
+        </div> -->
 
         <div class="tool-right">
-          <button class="tool-btn" id="preview-btn" title="预览模式"><i class="fa-solid fa-eye"></i></button>
+          <!-- <button class="tool-btn" id="preview-btn" title="预览模式"><i class="fa-solid fa-eye"></i></button> -->
           <button class="tool-btn" id="theme-toggle-btn" title="切换夜间模式"><i class="fa-solid fa-moon"></i></button>
           <button class="tool-btn"><i class="fa-solid fa-clock-rotate-left"></i></button>
-          <button class="tool-btn delete-btn"><i class="fa-regular fa-trash-can"></i></button>
+          <button class="tool-btn delete-btn" title="删除笔记"><i class="fa-regular fa-trash-can"></i></button>
         </div>
 
       </div>
 
       <div class="editor-container">
-        <input type="text" id="note-title" placeholder="" value="新标题">
-        <textarea id="note-content" placeholder="">新内容</textarea>
+        <input type="text" id="note-title" placeholder="标题">
+        <textarea id="note-content" placeholder=""></textarea>
 
         <div id="note-preview-area"></div>
       </div>

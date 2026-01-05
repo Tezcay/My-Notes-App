@@ -195,7 +195,7 @@ function renderFolderList() {
       handleDeleteFolder(category);
     });
 
-    // 🔥 拖放目标事件
+    // 拖放目标事件
     li.addEventListener('dragover', (e) => {
       e.preventDefault(); // 允许放置
       li.classList.add('drag-over');
@@ -282,7 +282,7 @@ function renderNoteList() {
     li.className = 'note-item';
     if (note.id === currentNoteId) li.classList.add('active');
 
-    // 🔥 设置可拖动
+    // 设置可拖动
     li.draggable = true;
     li.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/plain', note.id.toString());
@@ -292,7 +292,7 @@ function renderNoteList() {
       li.classList.remove('dragging');
     });
 
-    // 🔥 关键点：调用 highlightText 处理标题和预览
+    // 关键点：调用 highlightText 处理标题和预览
     const displayTitle = highlightText(note.title || '无标题', currentSearchKeyword);
     const displayContent = highlightText(note.content || '无内容', currentSearchKeyword);
 
@@ -738,7 +738,7 @@ if (themeToggleBtn) {
 // 页面加载时初始化主题
 initTheme();
 
-// 预览功能
+/* // 预览功能
 const previewBtn = document.getElementById('preview-btn');
 const editorContainer = document.querySelector('.editor-container');
 const previewArea = document.getElementById('note-preview-area');
@@ -768,4 +768,233 @@ if (previewBtn) {
       editorContent.disabled = false;
     }
   });
+} */
+
+// --- EasyMDE 初始化（完整版） ---  
+let easyMDE = null;
+
+if (document.getElementById('note-content')) {
+  easyMDE = new EasyMDE({
+    element: document.getElementById('note-content'),
+    spellChecker: false,
+    status: false,
+    autofocus: false,
+    hideIcons: ['fullscreen', 'side-by-side'], // 只隐藏有问题的side-by-side
+    // 自定义工具栏配置
+    toolbar: [
+      {
+        name: "bold",
+        action: EasyMDE.toggleBold,
+        className: "fa fa-bold",
+        title: "加粗 Ctrl+B"
+      },
+      {
+        name: "italic",
+        action: EasyMDE.toggleItalic,
+        className: "fa fa-italic",
+        title: "斜体 Ctrl+I"
+      },
+      {
+        name: "strikethrough",
+        action: EasyMDE.toggleStrikethrough,
+        className: "fa fa-strikethrough",
+        title: "删除线"
+      },
+      "|",
+      {
+        name: "heading-1",
+        action: EasyMDE.toggleHeading1,
+        className: "fa fa-header fa-heading-1",
+        title: "一级标题"
+      },
+      {
+        name: "heading-2",
+        action: EasyMDE.toggleHeading2,
+        className: "fa fa-header fa-heading-2",
+        title: "二级标题"
+      },
+      {
+        name: "heading-3",
+        action: EasyMDE.toggleHeading3,
+        className: "fa fa-header fa-heading-3",
+        title: "三级标题"
+      },
+      "|",
+      {
+        name: "quote",
+        action: EasyMDE.toggleBlockquote,
+        className: "fa fa-quote-left",
+        title: "引用"
+      },
+      {
+        name: "unordered-list",
+        action: EasyMDE.toggleUnorderedList,
+        className: "fa fa-list-ul",
+        title: "无序列表"
+      },
+      {
+        name: "ordered-list",
+        action: EasyMDE.toggleOrderedList,
+        className: "fa fa-list-ol",
+        title: "有序列表"
+      },
+      "|",
+      {
+        name: "code",
+        action: EasyMDE.toggleCodeBlock,
+        className: "fa fa-code",
+        title: "代码块"
+      },
+      {
+        name: "link",
+        action: EasyMDE.drawLink,
+        className: "fa fa-link",
+        title: "插入链接 Ctrl+K"
+      },
+      {
+        name: "upload-image",
+        action: function uploadImage(editor) {
+          // 创建隐藏的文件输入
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+          input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              // 检查文件大小（限制500KB）
+              if (file.size > 500 * 1024) {
+                alert('图片大小不能超过500KB，请选择更小的图片');
+                return;
+              }
+
+              // 读取图片并转为base64
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                const base64 = event.target.result;
+                const cm = editor.codemirror;
+                const pos = cm.getCursor();
+                const imageMarkdown = `![${file.name}](${base64})`;
+                cm.replaceRange(imageMarkdown, pos);
+              };
+              reader.readAsDataURL(file);
+            }
+          };
+          input.click();
+        },
+        className: "fa fa-image",
+        title: "上传图片（本地）"
+      },
+      "|",
+      {
+        name: "preview",
+        action: function customPreview(editor) {
+          const container = document.querySelector('.editor-container');
+          const previewArea = document.getElementById('note-preview-area');
+          const isPreview = container.classList.contains('preview-mode');
+
+          if (isPreview) {
+            // 退出预览模式
+            container.classList.remove('preview-mode');
+            editorTitle.disabled = false;
+          } else {
+            // 进入预览模式
+            container.classList.add('preview-mode');
+            previewArea.innerHTML = marked.parse(editor.value() || '# 无内容');
+            editorTitle.disabled = true;
+          }
+        },
+        className: "fa fa-eye",
+        title: "切换预览"
+      },
+      "|",
+      {
+        name: "toggle-sidebar",
+        action: function toggleSidebar(editor) {
+          const sidebar = document.querySelector('.sidebar');
+          const listView = document.querySelector('.list-view');
+          sidebar.classList.toggle('collapsed');
+          listView.classList.toggle('collapsed');
+
+          // 刷新CodeMirror以适应新宽度
+          setTimeout(() => {
+            if (editor && editor.codemirror) {
+              editor.codemirror.refresh();
+            }
+          }, 300);
+        },
+        className: "fa fa-bars",
+        title: "收起/展开侧边栏"
+      }
+    ],
+    placeholder: "开始记录你的想法...",
+    // 禁用可能导致冲突的快捷键
+    shortcuts: {
+      toggleFullScreen: null,
+      toggleSideBySide: null
+    },
+    // 其他配置
+    tabSize: 4,
+    indentWithTabs: false,
+    lineWrapping: true,
+    minHeight: "300px"
+  });
+
+  // 【关键代码】把 EasyMDE 的工具栏搬到最上面的 .toolbar 里
+  const easyMDEToolbar = document.querySelector('.editor-toolbar');
+  const mainToolbar = document.querySelector('.toolbar');
+  const rightTools = document.querySelector('.tool-right');
+
+  if (easyMDEToolbar && mainToolbar && rightTools) {
+    // 移除 EasyMDE 默认样式
+    easyMDEToolbar.style.border = 'none';
+    easyMDEToolbar.style.borderRadius = '0';
+    easyMDEToolbar.style.backgroundColor = 'transparent';
+    easyMDEToolbar.style.padding = '0';
+
+    // 把工具栏插入到主工具栏左侧
+    mainToolbar.insertBefore(easyMDEToolbar, rightTools);
+  }
+
+  // 修复 CodeMirror 高度自适应
+  setTimeout(() => {
+    if (easyMDE && easyMDE.codemirror) {
+      easyMDE.codemirror.refresh();
+    }
+  }, 100);
+
+  // 数据同步逻辑
+  easyMDE.codemirror.on("change", () => {
+    const val = easyMDE.value();
+    if (currentNoteId) {
+      const note = notes.find(n => n.id === currentNoteId);
+      if (note) {
+        note.content = val;
+        note.updateTime = Date.now();
+        saveAllToLocalStorage();
+        // 更新列表显示
+        renderNoteList();
+      }
+    }
+  });
+}
+
+// 切换笔记逻辑
+function loadNoteToEditor(note) {
+  editorTitle.value = note.title;
+  if (easyMDE) {
+    // 退出预览模式
+    const container = document.querySelector('.editor-container');
+    if (container.classList.contains('preview-mode')) {
+      container.classList.remove('preview-mode');
+      editorTitle.disabled = false;
+    }
+
+    easyMDE.value(note.content || "");
+    // 刷新CodeMirror确保正确渲染
+    setTimeout(() => {
+      if (easyMDE.codemirror) {
+        easyMDE.codemirror.refresh();
+      }
+    }, 50);
+  }
 }
