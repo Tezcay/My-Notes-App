@@ -286,6 +286,7 @@ function renderNoteList() {
   // 5. 生成列表 (带高亮!)
   filteredNotes.forEach(note => {
     const li = document.createElement('li');
+    li.dataset.id = note.id; // 方便以后精确找到它
     li.className = 'note-item';
     if (note.id === currentNoteId) li.classList.add('active');
 
@@ -1163,16 +1164,43 @@ if (document.getElementById('note-content')) {
     const val = easyMDE.value();
     if (currentNoteId) {
       const note = notes.find(n => n.id == currentNoteId); // 数字和字符串统一
+      
       if (note) {
         // 更新内容和时间
         note.content = val;
         note.updateTime = Date.now();
 
-        // 🔥 关键修改：只保存数据，不重绘列表！
+        // 关键修改：只保存数据，不重绘列表！
         // renderNoteList();  
         // 这样你在打字时，左侧列表就不会动了。
 
         saveAllToLocalStorage();
+
+        // 核心修复：手动更新左侧列表的 UI (不重排)
+        const noteItem = document.querySelector(`.note-item[data-id="${currentNoteId}"]`); // 假设你给li加了data-id
+        // 如果你的 li 没有 data-id，可能需要改 renderNoteList 给它加上，或者通过其他方式找
+        
+        // 这里假设 renderNoteList 里生成的 li 还没有 data-id，我们需要去 renderNoteList 加一行代码！
+        // 暂时先用这一招：
+        // 尝试找到当前 active 的 li (因为正在编辑的肯定是被选中的)
+        const activeItem = document.querySelector('.note-item.active');
+        
+        if (activeItem) {
+            // A. 更新预览文字 (提取前30个字)
+            const previewDiv = activeItem.querySelector('.note-preview');
+            if (previewDiv) {
+                // 简单的去除 Markdown 符号逻辑
+                const plainText = val.replace(/[#*`]/g, '').replace(/\n/g, ' ').substring(0, 50);
+                // 如果有搜索词，记得高亮(这里简单处理，直接显示文字)
+                previewDiv.textContent = plainText || '无内容';
+            }
+            
+            // B. 更新时间
+            const dateDiv = activeItem.querySelector('.note-date');
+            if (dateDiv) {
+                dateDiv.textContent = '刚刚';
+            }
+        }
       }
     }
   });
