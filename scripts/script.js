@@ -365,16 +365,48 @@ navItems.forEach(item => {
 });
 */
 
+// === 新增：切换分类的通用函数 ===
+function switchCategory(id, name) {
+  // 1. 更新状态
+  currentCategoryId = id;
+  currentNoteId = null; // 清除选中笔记
+
+  // 2. 更新UI
+  listTitleEl.textContent = name;
+  renderFolderList(); // 更新高亮
+  renderNoteList();   // 刷新列表
+
+  // 3. 清空编辑器
+  editorTitle.value = '';
+  if(typeof easyMDE !== 'undefined') {
+      easyMDE.value("");
+  }
+  
+  // 4. 手机端自动收起侧边栏
+  if (window.innerWidth <= 768) {
+    sidebar.classList.remove('open');
+  }
+}
+
 // A. 侧边栏点击逻辑 (使用事件委托，处理动态生成的元素)
 sidebar.addEventListener('click', (e) => {
   // 找到被点击的.nav-item元素
   const navItem = e.target.closest('.nav-item');
 
   if (navItem) {
-    const newCategoryId = navItem.dataset.id;
-    const categoryName = navItem.querySelector('.text').textContent;
+    const targetId = navItem.dataset.id;
+    const targetName = navItem.querySelector('.text').textContent;
 
-    // 切换分类
+    // 拦截
+    if (targetId === 'private') {
+      handlePrivateAccess(targetId, targetName);
+      return; // 阻止后续切换
+    }
+
+    // 普通分类直接切换
+    switchCategory(targetId, targetName);
+
+    /* // 切换分类
     currentCategoryId = newCategoryId;
     currentNoteId = null; // 切换分类时，清除当前选中笔记
 
@@ -385,7 +417,7 @@ sidebar.addEventListener('click', (e) => {
 
     // 清空右侧编辑器
     editorTitle.value = '';
-    editorContent.value = '';
+    editorContent.value = ''; */
   }
 });
 
@@ -422,6 +454,14 @@ function showModal(title, placeholder, callback) {
   modalTitle.textContent = title;
   modalInput.placeholder = placeholder;
   modalInput.value = ''; // 清空输入框
+
+  // 智能判断：如果是私密相关，把输入框变成 password 类型
+  if (title.includes('密码') || title.includes('锁定')) {
+    modalInput.type = 'password';
+  } else {
+    modalInput.type = 'text';
+  }
+
   modalOverlay.style.display = 'flex'; // 显示
   modalInput.focus(); // 自动聚焦
   
@@ -1088,3 +1128,28 @@ if (undoBtn) {
   });
 }
 
+// --- 私密笔记核心逻辑 ---
+function handlePrivateAccess(targetId, targetName) {
+  // 1. 检查 LocalStorage 有无存过密码
+  const savedPassword = localStorage.getItem('private_password');
+
+  if (!savedPassword) {
+    // a. 如果没有存过 -> 第一次使用，提示设置密码
+    showModal('设置私密密码', '请设置一个访问密码(请牢记)', (inputVal) => {
+      if (inputVal) {
+        localStorage.setItem('private_password', inputVal);
+        switchCategory(targetId, targetName); // 设置完直接进入
+      }
+    });
+
+  } else {
+    // b. 如果存过 -> 提示输入密码问题
+    showModal('私密笔记已锁定', '请输入密码解锁', (inputVal) => {
+      if (inputVal === savedPassword) {
+        switchCategory(targetId, targetName);
+      } else {
+        alert('密码错误！');
+      }
+    });
+  }
+}
