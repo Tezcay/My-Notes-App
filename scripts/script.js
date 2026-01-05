@@ -752,9 +752,7 @@ if (deleteBtn) {
         saveAllToLocalStorage();
 
         // 清除当前选中状态
-        currentNoteId = null;
-        editorTitle.value = '';
-        editorContent.value = '';
+        resetEditor(); // 换成强力清空！
         renderNoteList();
       }
       return; // 取消删除
@@ -767,9 +765,7 @@ if (deleteBtn) {
       saveAllToLocalStorage();
 
       // 清除当前选中状态
-      currentNoteId = null;
-      editorTitle.value = '';
-      editorContent.value = '';
+      resetEditor(); // 换成强力清空！
       renderNoteList();
     }
   });
@@ -1298,59 +1294,95 @@ let ctxTargetId = null; // 存一下当前右键点的是哪个文件夹
 
 // 1. 显示菜单
 function showContextMenu(e, categoryId) {
-    ctxTargetId = categoryId;
-    
-    // 计算位置 (防止菜单跑出屏幕，这里简单跟随鼠标)
-    ctxMenu.style.left = `${e.pageX}px`;
-    ctxMenu.style.top = `${e.pageY}px`;
-    ctxMenu.style.display = 'block';
+  ctxTargetId = categoryId;
+
+  // 计算位置 (防止菜单跑出屏幕，这里简单跟随鼠标)
+  ctxMenu.style.left = `${e.pageX}px`;
+  ctxMenu.style.top = `${e.pageY}px`;
+  ctxMenu.style.display = 'block';
 }
 
 // 2. 隐藏菜单 (点击页面任何其他地方)
 document.addEventListener('click', () => {
-    if(ctxMenu) ctxMenu.style.display = 'none';
+  if (ctxMenu) ctxMenu.style.display = 'none';
 });
 
 // 3. 绑定功能：重命名
 if (ctxRenameBtn) {
-    ctxRenameBtn.addEventListener('click', () => {
-        if (!ctxTargetId) return;
-        
-        const category = categories.find(c => c.id === ctxTargetId);
-        if (!category) return;
+  ctxRenameBtn.addEventListener('click', () => {
+    if (!ctxTargetId) return;
 
-        // 复用你的漂亮弹窗
-        showModal('重命名文件夹', '请输入新名称', (newName) => {
-            if (newName === category.name) return; // 没变就不动
+    const category = categories.find(c => c.id === ctxTargetId);
+    if (!category) return;
 
-            category.name = newName;
-            saveAllToLocalStorage();
-            renderFolderList(); // 刷新列表名字
-            
-            // 如果当前正选着这个文件夹，标题也要变
-            if (currentCategoryId === ctxTargetId) {
-                listTitleEl.textContent = newName;
-            }
-        });
+    // 复用你的漂亮弹窗
+    showModal('重命名文件夹', '请输入新名称', (newName) => {
+      if (newName === category.name) return; // 没变就不动
 
-        // 小技巧：弹窗出来后，把旧名字填进去，方便修改
-        setTimeout(() => {
-            if(modalInput) {
-                modalInput.value = category.name;
-                modalInput.select(); // 自动全选文字
-            }
-        }, 50); // 稍微延迟一点点等弹窗渲染
+      category.name = newName;
+      saveAllToLocalStorage();
+      renderFolderList(); // 刷新列表名字
+
+      // 如果当前正选着这个文件夹，标题也要变
+      if (currentCategoryId === ctxTargetId) {
+        listTitleEl.textContent = newName;
+      }
     });
+
+    // 小技巧：弹窗出来后，把旧名字填进去，方便修改
+    setTimeout(() => {
+      if (modalInput) {
+        modalInput.value = category.name;
+        modalInput.select(); // 自动全选文字
+      }
+    }, 50); // 稍微延迟一点点等弹窗渲染
+  });
 }
 
 // 4. 绑定功能：删除
 if (ctxDeleteBtn) {
-    ctxDeleteBtn.addEventListener('click', () => {
-        if (!ctxTargetId) return;
-        
-        const category = categories.find(c => c.id === ctxTargetId);
-        if (category) {
-            handleDeleteFolder(category); // 调用你原来的删除函数
-        }
-    });
+  ctxDeleteBtn.addEventListener('click', () => {
+    if (!ctxTargetId) return;
+
+    const category = categories.find(c => c.id === ctxTargetId);
+    if (category) {
+      handleDeleteFolder(category); // 调用你原来的删除函数
+    }
+  });
+}
+
+// ===========================================
+// 🧹 强力清空编辑器 (修复删除后残留问题)
+// ===========================================
+function resetEditor() {
+  // 1. 退出预览模式
+  const container = document.querySelector('.editor-container');
+  const previewArea = document.getElementById('note-preview-area');
+  if (container) container.classList.remove('preview-mode');
+  if (previewArea) previewArea.innerHTML = ''; // 清空预览HTML
+
+  // 2. 清空输入框
+  editorTitle.value = '';
+  editorContent.value = '';
+  editorTitle.disabled = false; // 恢复可编辑
+
+  // 3. 清空 EasyMDE (核心)
+  if (easyMDE) {
+    easyMDE.value("");
+    // 修复：有些时候 clear 之后 placeholder 不显示，强制刷新一下
+    setTimeout(() => {
+      if (easyMDE.codemirror) easyMDE.codemirror.refresh();
+    }, 10);
+  }
+
+  // 4. 图标恢复为“预览” (眼睛)
+  const previewBtn = document.querySelector('.editor-toolbar .fa-pen');
+  if (previewBtn) {
+    previewBtn.classList.remove('fa-pen');
+    previewBtn.classList.add('fa-eye');
+    previewBtn.title = "预览";
+  }
+
+  // 5. 状态置空
+  currentNoteId = null;
 }
