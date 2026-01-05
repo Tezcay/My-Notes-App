@@ -405,7 +405,79 @@ if (folderToggleBtn && folderListEl) {
   });
 }
 
-// B1. 新增文件夹按钮点击事件
+// ===========================================
+// 🎨 自定义弹窗逻辑 (通用封装)
+// ===========================================
+const modalOverlay = document.getElementById('custom-modal');
+const modalTitle = document.getElementById('modal-title');
+const modalInput = document.getElementById('modal-input');
+const modalConfirmBtn = document.getElementById('modal-confirm');
+const modalCancelBtn = document.getElementById('modal-cancel');
+
+// 定义一个变量来存“点确定后要干什么”
+let onModalConfirm = null;
+
+// 显示弹窗的函数
+function showModal(title, placeholder, callback) {
+  modalTitle.textContent = title;
+  modalInput.placeholder = placeholder;
+  modalInput.value = ''; // 清空输入框
+  modalOverlay.style.display = 'flex'; // 显示
+  modalInput.focus(); // 自动聚焦
+  
+  onModalConfirm = callback; // 把要做的事存起来
+}
+
+// 隐藏弹窗函数
+function hideModal() {
+  modalOverlay.style.display = 'none';
+  onModalConfirm = null;
+}
+
+// 绑定弹窗内部按钮事件
+if (modalCancelBtn) modalCancelBtn.onclick = hideModal;
+
+if (modalConfirmBtn) {
+  modalConfirmBtn.onclick = () => {
+    const value = modalInput.value.trim();
+    if (value && onModalConfirm) {
+      onModalConfirm(value); // 执行回调
+      hideModal();
+    } else if (!value) {
+      alert("内容不能为空"); // 简单防空
+    }
+  };
+}
+
+// 支持按回车键确认
+if (modalInput) {
+  modalInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') modalConfirmBtn.click();
+  });
+}
+
+// ===========================================
+// B1. 新增文件夹 (修改版：使用自定义弹窗)
+// ===========================================
+if (addFolderBtn) {
+  addFolderBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); 
+    
+    // 调用刚写的漂亮弹窗
+    showModal('新建文件夹', '请输入文件夹名称', (folderName) => {
+      // 这里是点确定后执行的逻辑 (和原来一样)
+      const newCategory = {
+        id: 'folder-' + Date.now(),
+        name: folderName
+      };
+      categories.push(newCategory);
+      saveAllToLocalStorage();
+      renderFolderList();
+    });
+  });
+}
+
+/* // B1. 新增文件夹按钮点击事件
 if (addFolderBtn) {
   addFolderBtn.addEventListener('click', (e) => {
     e.stopPropagation(); // 阻止事件冒泡，避免触发侧边栏点击事件
@@ -421,7 +493,7 @@ if (addFolderBtn) {
       renderFolderList();
     }
   });
-}
+} */
 
 // C. 删除文件夹处理函数
 function handleDeleteFolder(category) {
@@ -571,7 +643,7 @@ if (deleteBtn) {
 
     // 删除分支逻辑
 
-    // A. 如果当前分类是"trash"，则永久删除
+    // a. 如果当前分类是"trash"，则永久删除
     if (currentCategoryId === "trash") {
       if (confirm('确定要永久删除这条笔记吗? 此操作无法撤销')) {
         // 永久删除
@@ -587,7 +659,7 @@ if (deleteBtn) {
       return; // 取消删除
     }
 
-    // B. 否则，移动到"trash"分类
+    // b. 否则，移动到"trash"分类
     if (confirm('确定要将笔记移动到回收站吗? ')) {
       currentNote.categoryId = "trash"; // 只是修改标签
       currentNote.updateTime = Date.now(); // 更新时间
