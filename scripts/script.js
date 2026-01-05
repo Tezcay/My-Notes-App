@@ -446,58 +446,85 @@ if (folderToggleBtn && folderListEl) {
 }
 
 // ===========================================
-// 🎨 自定义弹窗逻辑 (通用封装)
+// 🎨 自定义弹窗逻辑 (增强版：支持输入 & 确认)
 // ===========================================
 const modalOverlay = document.getElementById('custom-modal');
 const modalTitle = document.getElementById('modal-title');
+const modalDesc = document.getElementById('modal-desc'); // 新增
 const modalInput = document.getElementById('modal-input');
 const modalConfirmBtn = document.getElementById('modal-confirm');
 const modalCancelBtn = document.getElementById('modal-cancel');
 
-// 定义一个变量来存“点确定后要干什么”
 let onModalConfirm = null;
+let isInputMode = true; // 标记当前是输入模式还是纯确认模式
 
-// 显示弹窗的函数
+// 1. 显示输入框弹窗 (新建文件夹、密码等)
 function showModal(title, placeholder, callback) {
+  isInputMode = true;
   modalTitle.textContent = title;
+  
+  // UI 切换：显示输入框，隐藏文本
+  modalInput.style.display = 'block';
+  modalDesc.style.display = 'none';
+  
   modalInput.placeholder = placeholder;
-  modalInput.value = ''; // 清空输入框
+  modalInput.value = '';
 
-  // 智能判断：如果是私密相关，把输入框变成 password 类型
+  // 密码框处理
   if (title.includes('密码') || title.includes('锁定')) {
     modalInput.type = 'password';
   } else {
     modalInput.type = 'text';
   }
 
-  modalOverlay.style.display = 'flex'; // 显示
-  modalInput.focus(); // 自动聚焦
-
-  onModalConfirm = callback; // 把要做的事存起来
+  modalOverlay.style.display = 'flex';
+  setTimeout(() => modalInput.focus(), 50); // 延迟聚焦防抖
+  onModalConfirm = callback;
 }
 
-// 隐藏弹窗函数
+// 2. 显示确认弹窗 (删除确认等)
+function showConfirm(title, message, callback) {
+  isInputMode = false;
+  modalTitle.textContent = title;
+
+  // UI 切换：隐藏输入框，显示文本
+  modalInput.style.display = 'none';
+  modalDesc.style.display = 'block';
+  modalDesc.textContent = message;
+
+  modalOverlay.style.display = 'flex';
+  onModalConfirm = callback;
+}
+
+// 隐藏弹窗
 function hideModal() {
   modalOverlay.style.display = 'none';
   onModalConfirm = null;
 }
 
-// 绑定弹窗内部按钮事件
+// 绑定按钮事件
 if (modalCancelBtn) modalCancelBtn.onclick = hideModal;
 
 if (modalConfirmBtn) {
   modalConfirmBtn.onclick = () => {
-    const value = modalInput.value.trim();
-    if (value && onModalConfirm) {
-      onModalConfirm(value); // 执行回调
+    if (isInputMode) {
+      // A. 输入模式：必须有值
+      const value = modalInput.value.trim();
+      if (value) {
+        if (onModalConfirm) onModalConfirm(value);
+        hideModal();
+      } else {
+        alert("内容不能为空");
+      }
+    } else {
+      // B. 确认模式：直接执行
+      if (onModalConfirm) onModalConfirm();
       hideModal();
-    } else if (!value) {
-      alert("内容不能为空"); // 简单防空
     }
   };
 }
 
-// 支持按回车键确认
+// 回车键支持 (只在输入模式下生效)
 if (modalInput) {
   modalInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') modalConfirmBtn.click();
@@ -715,60 +742,38 @@ if (editorTitle) {
   });
 });
 
-// F. 删除笔记按钮点击事件
+// F. 删除笔记按钮点击事件 (使用漂亮弹窗)
 if (deleteBtn) {
   deleteBtn.addEventListener('click', () => {
-    // 如果没有选中笔记，直接返回
     if (!currentNoteId) {
       alert('请先选择一条要删除的笔记');
       return;
     }
 
-    /*  // 确认删除
-     if (confirm('确定要删除这条笔记吗？')) {
-       // 1. 从数据数组中删除笔记
-       notes = notes.filter(n => n.id !== currentNoteId);
-       // 保存数据到 LocalStorage
-       saveAllToLocalStorage();
- 
-       // 2. 清除当前选中状态
-       currentNoteId = null;
-       editorTitle.value = '';
-       editorContent.value = '';
- 
-       // 3. 重新渲染笔记列表
-       renderNoteList();
-     } */
-
-    const currentNote = notes.find(n => n.id === currentNoteId);
+    const currentNote = notes.find(n => n.id == currentNoteId);
     if (!currentNote) return;
 
-    // 删除分支逻辑
-
-    // a. 如果当前分类是"trash"，则永久删除
+    // 场景 A：从回收站永久删除
     if (currentCategoryId === "trash") {
-      if (confirm('确定要永久删除这条笔记吗? 此操作无法撤销')) {
-        // 永久删除
-        notes = notes.filter(n => n.id !== currentNoteId);
-        saveAllToLocalStorage();
-
-        // 清除当前选中状态
-        resetEditor(); // 换成强力清空！
-        renderNoteList();
-      }
-      return; // 取消删除
+      showConfirm('永久删除', '确定要永久销毁这条笔记吗？此操作无法撤销。', () => {
+         // 执行删除逻辑
+         notes = notes.filter(n => n.id != currentNoteId);
+         saveAllToLocalStorage();
+         resetEditor(); // 强力清空
+         renderNoteList();
+      });
+      return;
     }
 
-    // b. 否则，移动到"trash"分类
-    if (confirm('确定要将笔记移动到回收站吗? ')) {
-      currentNote.categoryId = "trash"; // 只是修改标签
-      currentNote.updateTime = Date.now(); // 更新时间
-      saveAllToLocalStorage();
-
-      // 清除当前选中状态
-      resetEditor(); // 换成强力清空！
-      renderNoteList();
-    }
+    // 场景 B：移入回收站
+    showConfirm('移入回收站', '确定要将这条笔记丢进回收站吗？', () => {
+       // 执行移动逻辑
+       currentNote.categoryId = "trash";
+       currentNote.updateTime = Date.now();
+       saveAllToLocalStorage();
+       resetEditor(); // 强力清空
+       renderNoteList();
+    });
   });
 }
 
@@ -1062,7 +1067,7 @@ if (document.getElementById('note-content')) {
           const previewArea = document.getElementById('note-preview-area');
           const isPreview = container.classList.contains('preview-mode');
 
-          // 🔥 1. 找到预览按钮 (无论它现在是眼睛还是笔，都能找到)
+          // 1. 找到预览按钮 (无论它现在是眼睛还是笔，都能找到)
           const previewBtn = document.querySelector('.editor-toolbar .fa-eye') ||
             document.querySelector('.editor-toolbar .fa-pen');
 
@@ -1305,7 +1310,7 @@ if (noteTitleInput) {
 
       // 检查编辑器是否存在
       if (typeof easyMDE !== 'undefined' && easyMDE.codemirror) {
-        easyMDE.codemirror.focus(); // 🔥 核心：聚焦到编辑器
+        easyMDE.codemirror.focus(); // 核心：聚焦到编辑器
         easyMDE.codemirror.setCursor(0, 0); // (可选) 把光标定在正文开头
       }
     }
