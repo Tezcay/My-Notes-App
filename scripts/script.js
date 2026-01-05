@@ -882,7 +882,7 @@ if (document.getElementById('note-content')) {
           input.click();
         },
         className: "fa fa-image",
-        title: "上传图片（本地）"
+        title: "上传图片(本地)"
       },
       "|",
       {
@@ -938,6 +938,9 @@ if (document.getElementById('note-content')) {
     lineWrapping: true,
     minHeight: "300px"
   });
+
+  // 设置撤销延迟
+  easyMDE.codemirror.setOption("historyEventDelay", 200);
 
   // 【关键代码】把 EasyMDE 的工具栏搬到最上面的 .toolbar 里
   const easyMDEToolbar = document.querySelector('.editor-toolbar');
@@ -998,3 +1001,18 @@ function loadNoteToEditor(note) {
     }, 50);
   }
 }
+
+const undoBtn = document.getElementById('undo-btn');
+
+if (undoBtn) {
+  undoBtn.addEventListener('click', () => {
+    // 检查编辑器是否已加载
+    if (easyMDE && easyMDE.codemirror) {
+      // 调用 CodeMirror 底层的撤销功能
+      easyMDE.codemirror.undo();
+      // 聚焦回编辑器
+      easyMDE.codemirror.focus();
+    }
+  });
+}
+
