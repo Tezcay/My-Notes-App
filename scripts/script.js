@@ -1003,20 +1003,39 @@ if (document.getElementById('note-content')) {
           const container = document.querySelector('.editor-container');
           const previewArea = document.getElementById('note-preview-area');
           const isPreview = container.classList.contains('preview-mode');
+          
+          // 🔥 1. 找到预览按钮 (无论它现在是眼睛还是笔，都能找到)
+          const previewBtn = document.querySelector('.editor-toolbar .fa-eye') || 
+                             document.querySelector('.editor-toolbar .fa-pen');
 
           if (isPreview) {
-            // 退出预览模式
+            // A. 退出预览 -> 变回编辑模式
             container.classList.remove('preview-mode');
             editorTitle.disabled = false;
+            
+            // 🔄 图标变回“眼睛”
+            if (previewBtn) {
+                previewBtn.classList.remove('fa-pen'); // 移除笔
+                previewBtn.classList.add('fa-eye');    // 加上眼睛
+                previewBtn.title = "预览";             // 提示文字也能改
+            }
+            
           } else {
-            // 进入预览模式
+            // B. 进入预览模式
             container.classList.add('preview-mode');
             previewArea.innerHTML = marked.parse(editor.value() || '# 无内容');
             editorTitle.disabled = true;
+
+            // 🔄 图标变成“笔” (代表去编辑)
+            if (previewBtn) {
+                previewBtn.classList.remove('fa-eye'); // 移除眼睛
+                previewBtn.classList.add('fa-pen');    // 加上笔
+                previewBtn.title = "返回编辑";
+            }
           }
         },
-        className: "fa fa-eye",
-        title: "切换预览"
+        className: "fa fa-eye", // 初始状态是眼睛
+        title: "预览"
       },
       "|",
       {
@@ -1188,4 +1207,24 @@ function handlePrivateAccess(targetId, targetName) {
       }
     });
   }
+}
+
+// ===========================================
+// 🎹 体验优化：标题栏按“下箭头/回车”跳到正文
+// ===========================================
+const noteTitleInput = document.getElementById('note-title');
+
+if (noteTitleInput) {
+    noteTitleInput.addEventListener('keydown', (e) => {
+        // 监听 "ArrowDown"(下箭头) 和 "Enter"(回车)
+        if (e.key === 'ArrowDown' || e.key === 'Enter') {
+            e.preventDefault(); // 阻止默认行为 (比如回车不用真的在标题里换行)
+            
+            // 检查编辑器是否存在
+            if (typeof easyMDE !== 'undefined' && easyMDE.codemirror) {
+                easyMDE.codemirror.focus(); // 🔥 核心：聚焦到编辑器
+                easyMDE.codemirror.setCursor(0, 0); // (可选) 把光标定在正文开头
+            }
+        }
+    });
 }
