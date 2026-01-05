@@ -230,10 +230,16 @@ function renderNoteList() {
     // 如果搜不到，直接淘汰
     if (!contentToSearch.includes(keyword)) return false;
 
-    // B. 分类筛选 (保留之前的逻辑)
+    // B. 分类筛选 
+    // 1. 回收站
     if (currentCategoryId === "trash") return note.categoryId === "trash";
+    // 2. 不在回收站
     if (note.categoryId === "trash") return false;
-    if (currentCategoryId === "all") return true;
+    // 3. 在全部笔记里隐藏私密笔记
+    if (currentCategoryId === "all") {
+      return note.categoryId !== 'private';
+    }
+    // 4. 其他普通情况
     return note.categoryId === currentCategoryId;
   });
 
