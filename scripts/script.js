@@ -169,7 +169,7 @@ function highlightText(text, keyword) {
   return text.replace(regex, '<span style="color: #10B981; font-weight: bold;">$1</span>');
 }
 
-// 渲染左侧"我的文件夹"列表
+// 渲染左侧"我的文件夹"列表(修改版：右键呼出菜单)
 function renderFolderList() {
   // 清空现有列表
   folderListEl.innerHTML = '';
@@ -190,10 +190,10 @@ function renderFolderList() {
       <span class="text">${category.name}</span>
     `;
 
-    // 右键点击事件：删除文件夹
+    // 右键点击事件：呼出菜单(修改版)
     li.addEventListener('contextmenu', (e) => {
-      e.preventDefault(); // 阻止默认右键菜单
-      handleDeleteFolder(category);
+      e.preventDefault(); // 阻止默认浏览器菜单
+      showContextMenu(e, category.id); // 呼出我们的菜单
     });
 
     // 拖放目标事件
@@ -207,7 +207,7 @@ function renderFolderList() {
     li.addEventListener('drop', (e) => {
       e.preventDefault();
       li.classList.remove('drag-over');
-      const noteId = parseInt(e.dataTransfer.getData('text/plain'));
+      const noteId = parseInt(e.dataTransfer.getData('text/plain')); // ID可以是字符串
       handleMoveNoteToCategory(noteId, category.id);
     });
 
@@ -1280,4 +1280,71 @@ if (noteTitleInput) {
       }
     }
   });
+}
+
+// ===========================================
+// 🖱️ 右键菜单逻辑 (重命名 + 删除)
+// ===========================================
+const ctxMenu = document.getElementById('folder-context-menu');
+const ctxRenameBtn = document.getElementById('ctx-rename');
+const ctxDeleteBtn = document.getElementById('ctx-delete');
+let ctxTargetId = null; // 存一下当前右键点的是哪个文件夹
+
+// 1. 显示菜单
+function showContextMenu(e, categoryId) {
+    ctxTargetId = categoryId;
+    
+    // 计算位置 (防止菜单跑出屏幕，这里简单跟随鼠标)
+    ctxMenu.style.left = `${e.pageX}px`;
+    ctxMenu.style.top = `${e.pageY}px`;
+    ctxMenu.style.display = 'block';
+}
+
+// 2. 隐藏菜单 (点击页面任何其他地方)
+document.addEventListener('click', () => {
+    if(ctxMenu) ctxMenu.style.display = 'none';
+});
+
+// 3. 绑定功能：重命名
+if (ctxRenameBtn) {
+    ctxRenameBtn.addEventListener('click', () => {
+        if (!ctxTargetId) return;
+        
+        const category = categories.find(c => c.id === ctxTargetId);
+        if (!category) return;
+
+        // 复用你的漂亮弹窗
+        showModal('重命名文件夹', '请输入新名称', (newName) => {
+            if (newName === category.name) return; // 没变就不动
+
+            category.name = newName;
+            saveAllToLocalStorage();
+            renderFolderList(); // 刷新列表名字
+            
+            // 如果当前正选着这个文件夹，标题也要变
+            if (currentCategoryId === ctxTargetId) {
+                listTitleEl.textContent = newName;
+            }
+        });
+
+        // 小技巧：弹窗出来后，把旧名字填进去，方便修改
+        setTimeout(() => {
+            if(modalInput) {
+                modalInput.value = category.name;
+                modalInput.select(); // 自动全选文字
+            }
+        }, 50); // 稍微延迟一点点等弹窗渲染
+    });
+}
+
+// 4. 绑定功能：删除
+if (ctxDeleteBtn) {
+    ctxDeleteBtn.addEventListener('click', () => {
+        if (!ctxTargetId) return;
+        
+        const category = categories.find(c => c.id === ctxTargetId);
+        if (category) {
+            handleDeleteFolder(category); // 调用你原来的删除函数
+        }
+    });
 }
