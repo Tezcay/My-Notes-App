@@ -1091,6 +1091,26 @@ if (document.getElementById('note-content')) {
       }
     }
   });
+
+  // 支持粘贴图片(Ctrl+V)
+  easyMDE.codemirror.on("paste", function(editor, e) {
+      if (!(e.clipboardData && e.clipboardData.items)) return;
+      for (let i = 0, len = e.clipboardData.items.length; i < len; i++) {
+          let item = e.clipboardData.items[i];
+          if (item.type.indexOf("image") !== -1) {
+              e.preventDefault();
+              let blob = item.getAsFile();
+              let reader = new FileReader();
+              reader.onload = function(event) {
+                  let base64 = event.target.result;
+                  let markdownImage = `\n![粘贴的图片](${base64})\n`;
+                  editor.replaceSelection(markdownImage);
+              };
+              reader.readAsDataURL(blob);
+              return;
+          }
+      }
+  });
 }
 
 // 切换笔记逻辑
