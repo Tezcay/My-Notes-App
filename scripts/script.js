@@ -652,6 +652,41 @@ if (addFolderBtn) {
 }
 
 // ===========================================
+// D2-1.5. 删除文件夹 (修复版)
+// ===========================================
+
+/**
+ * 删除文件夹处理函数
+ * 使用自定义弹窗 showConfirm 替代原生 confirm
+ * @param {Object} category - 分类对象
+ */
+function handleDeleteFolder(category) {
+  // 🔴 关键修改：这里改成了 showConfirm
+  showConfirm('删除文件夹', `确定要删除文件夹 "${category.name}" 及其所有笔记吗？`, () => {
+    // 1. 找到属于该分类的所有笔记，把它们移到 'uncategorized'
+    notes.forEach(note => {
+      if (note.categoryId === category.id) {
+        note.categoryId = 'uncategorized';
+      }
+    });
+
+    // 2. 从分类数组中删除该分类
+    categories = categories.filter(c => c.id !== category.id);
+
+    // 3. 如果当前分类是被删除的分类，切换到'all'
+    if (currentCategoryId === category.id) {
+      currentCategoryId = 'all';
+      listTitleEl.textContent = '全部笔记';
+    }
+
+    // 4. 保存数据并刷新
+    saveAllToLocalStorage();
+    renderFolderList();
+    renderNoteList();
+  });
+}
+
+// ===========================================
 // D2-2. 新增笔记（实时保存）
 // ===========================================
 if (addNoteBtn) {
@@ -770,33 +805,35 @@ if (deleteBtn) {
 // ===========================================
 
 /**
- * 删除文件夹处理函数
- * 将文件夹内的笔记移动到"未分类"，然后删除文件夹
+ * 删除文件夹处理函数 - 修复版
  * @param {Object} category - 分类对象
  */
 function handleDeleteFolder(category) {
-  if (confirm(`确定要删除文件夹 "${category.name}" 及其所有笔记吗？`)) {
-    // 1. 找到属于该分类的所有笔记，把它们移到 'uncategorized'
+  // ❌ 检查这里！绝对不能有 confirm(...) 字样
+  
+  // ✅ 必须是 showConfirm 开头
+  showConfirm('删除文件夹', `确定要删除文件夹 "${category.name}" 及其所有笔记吗？`, () => {
+    // 1. 移出笔记
     notes.forEach(note => {
       if (note.categoryId === category.id) {
         note.categoryId = 'uncategorized';
       }
     });
 
-    // 2. 从分类数组中删除该分类
+    // 2. 删除分类
     categories = categories.filter(c => c.id !== category.id);
 
-    // 3. 如果当前分类是被删除的分类，切换到'all'
+    // 3. 视图修正
     if (currentCategoryId === category.id) {
       currentCategoryId = 'all';
       listTitleEl.textContent = '全部笔记';
     }
 
-    // 4. 保存数据并刷新
+    // 4. 保存并刷新
     saveAllToLocalStorage();
     renderFolderList();
     renderNoteList();
-  }
+  });
 }
 
 // ----------------------------------------------------------------------------
@@ -804,7 +841,7 @@ function handleDeleteFolder(category) {
 // ----------------------------------------------------------------------------
 
 /**
- * 移动笔记到指定分类（拖拽使用）
+ * 移动笔记到指定分类（拖拽使用）- 修复版
  * @param {number|string} noteId - 笔记ID
  * @param {string} categoryId - 目标分类ID
  */
@@ -816,17 +853,30 @@ function handleMoveNoteToCategory(noteId, categoryId) {
   // 如果已经在这个分类，不做任何操作
   if (note.categoryId === categoryId) return;
 
+  // 🔴 真正执行移动的逻辑封装成一个小函数
+  const performMove = () => {
+    note.categoryId = categoryId;
+    note.updateTime = Date.now();
+    saveAllToLocalStorage();
+    renderNoteList();
+    // 提示
+    // console.log(`笔记 "${note.title}" 已移动到新分类`);
+  };
+
   // 🔥 特殊处理：拖入回收站时需要确认
   if (categoryId === 'trash') {
-    if (!confirm(`确定要将笔记 "${note.title}" 移动到回收站吗? `)) {
-      return; // 用户取消
-    }
+    // ❌ 删掉这行旧代码：if (!confirm(...)) return; 
+    
+    // ✅ 改用自定义弹窗
+    showConfirm('移入回收站', `确定要将笔记 "${note.title}" 丢进回收站吗?`, () => {
+       // 用户点确定后，才执行移动
+       performMove();
+    });
+    return; // 这里的 return 是为了等待用户点击，不要直接往下跑
   }
 
-  note.categoryId = categoryId;
-  note.updateTime = Date.now();
-  saveAllToLocalStorage();
-  renderNoteList();
+  // 普通移动直接执行
+  performMove();
 }
 
 // 初始化静态导航项的拖拽目标 (全部、未分类等)
