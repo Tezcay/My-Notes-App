@@ -1,39 +1,57 @@
-/*
-// 用 let 定义数据，方便后续修改(删除/添加)
-let notes = [
-  {
-    id: 1,
-    title: "First Note",
-    content: "This is the content of the first note.",
-    updateTime: "just now",
-    categoryId: "uncategorized"
-  },
-  {
-    id: 2,
-    title: "Shopping List",
-    content: "Milk, Bread, Eggs, Butter",
-    updateTime: "10 minutes ago",
-    categoryId: "all"
-  },
-  {
-    id: 3,
-    title: "Work Meeting",
-    content: "Discuss project milestones and deadlines.",
-    updateTime: "1 hour ago",
-    categoryId: "folder-call"
-  },
-  {
-    id: 4,
-    title: "To-Do: Gym",
-    content: "Leg day workout routine.",
-    updateTime: "3 days ago",
-    categoryId: "todo-unfinished"
-  }
-];
-*/
+// ============================================================================
+// MyNotesApp - 主脚本文件
+// ============================================================================
+// 
+// 📋 模块结构概览：
+// 
+// 【模块A】数据层 (Data Layer) 📦
+//    ├─ A1. 数据结构定义 - 默认数据、笔记数组、分类数组
+//    ├─ A2. LocalStorage操作 - 数据持久化函数
+//    ├─ A3. 数据初始化 - 从存储读取或使用默认数据
+//    └─ A4. 数据迁移与兼容 - 旧数据格式转换
+//
+// 【模块B】工具函数 (Utilities) 🔧
+//    ├─ B1. DOM操作辅助 - 元素获取与引用
+//    ├─ B2. 时间格式化 - 相对时间显示
+//    ├─ B3. 文本处理 - (预留)
+//    └─ B4. 搜索与高亮 - 关键词匹配与高亮渲染
+//
+// 【模块C】UI渲染 (Rendering) 🎨
+//    ├─ C1. 侧边栏渲染 - 文件夹列表生成
+//    ├─ C2. 笔记列表渲染 - 中间区域笔记列表
+//    ├─ C3. 编辑器加载 - 笔记内容加载到编辑器
+//    └─ C4. 弹窗渲染 - 自定义模态框显示
+//
+// 【模块D】事件处理 (Event Handlers) ⚡
+//    ├─ D1. 分类切换 - 侧边栏导航点击
+//    ├─ D2. 笔记CRUD - 新建、编辑、删除笔记
+//    ├─ D3. 拖拽功能 - 笔记拖动到文件夹
+//    └─ D4. 搜索与排序 - 搜索输入、排序切换
+//
+// 【模块E】编辑器集成 (Editor) ✏️
+//    ├─ E1. EasyMDE初始化 - Markdown编辑器配置
+//    ├─ E2. 自定义工具栏 - 工具按钮与布局
+//    ├─ E3. 图片上传 - 本地图片转Base64
+//    └─ E4. 预览模式 - Markdown渲染与切换
+//
+// 【模块F】高级功能 (Advanced) 🚀
+//    ├─ F1. 私密笔记 - 密码保护访问
+//    ├─ F2. 右键菜单 - 文件夹重命名与删除
+//    ├─ F3. 自定义弹窗 - 输入与确认弹窗
+//    ├─ F4. 撤销功能 - 编辑器历史回退
+//    ├─ F5. 主题切换 - 深色/浅色模式
+//    └─ F6. 移动端适配 - 响应式交互逻辑
+//
+// ============================================================================
 
-// 数据定义 模拟数据库 + LocalStorage
-// 定义一个默认的初始数据集
+// ============================================================================
+// 【模块A】数据层 📦 (Data Layer)
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// A1. 数据结构定义
+// ----------------------------------------------------------------------------
+// 定义笔记和分类的默认初始数据，用于首次加载或数据为空时使用
 const defaultNotes = [
   {
     id: 1,
@@ -55,12 +73,31 @@ const defaultCategories = [
   }
 ];
 
-// 优先从 LocalStorage 获取数据
-// 如果没有数据，则使用默认数据
+// ----------------------------------------------------------------------------
+// A2. LocalStorage操作
+// ----------------------------------------------------------------------------
+
+/**
+ * 保存所有数据到LocalStorage
+ * 在任何数据变更后调用此函数以持久化数据
+ */
+function saveAllToLocalStorage() {
+  localStorage.setItem('notes', JSON.stringify(notes));
+  localStorage.setItem('categories', JSON.stringify(categories));
+}
+
+// ----------------------------------------------------------------------------
+// A3. 数据初始化
+// ----------------------------------------------------------------------------
+// 优先从 LocalStorage 读取已保存的数据；如果不存在，则使用默认初始数据
 let notes = JSON.parse(localStorage.getItem('notes')) || defaultNotes;
 let categories = JSON.parse(localStorage.getItem('categories')) || defaultCategories;
 
-// 数据迁移：将旧的 "刚刚" 字符串转换为当前时间戳，以便启用相对时间功能
+// ----------------------------------------------------------------------------
+// A4. 数据迁移与兼容
+// ----------------------------------------------------------------------------
+// 将旧版本数据格式迁移到新格式，确保向后兼容
+// 例如：将旧的 "刚刚" 字符串转换为时间戳
 notes.forEach(note => {
   if (note.updateTime === '刚刚') {
     note.updateTime = Date.now();
@@ -68,21 +105,30 @@ notes.forEach(note => {
 });
 saveAllToLocalStorage(); // 保存修正后的数据
 
-// 当前状态
+// 应用状态管理
+// 记录当前的UI状态和用户交互状态
 let currentCategoryId = "all"; // 当前选中的分类ID，默认'all'
 let currentNoteId = null; // 当前选中的笔记ID
 let currentSearchKeyword = ''; // 当前搜索关键词
 let currentSortMode = 'timeDesc'; // 当前排序模式: timeDesc, timeAsc, titleAsc
-let isLoadingNote = false; // 定义一个加载锁状态
+let isLoadingNote = false; // 加载锁：防止加载笔记时触发编辑事件
 
-// --- DOM元素获取 ---
+// ============================================================================
+// 【模块B】工具函数 🔧 (Utilities)
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// B1. DOM操作辅助
+// ----------------------------------------------------------------------------
+// 获取并缓存常用的DOM元素引用，提升性能
 
 // 侧边栏相关
 const sidebar = document.querySelector('.sidebar'); // 左侧整个侧边栏(用于事件委托)
 const folderListEl = document.getElementById('folder-list'); // 自定义文件夹列表容器
 const addFolderBtn = document.getElementById('add-folder-btn'); // 左侧新增文件夹按钮
 const listTitleEl = document.querySelector('.list-header-top h2'); // 中间顶部标题
-// const navItems = document.querySelectorAll('.nav-item'); // 左侧导航项
+const folderToggleBtn = document.getElementById('folder-toggle-btn'); // 文件夹折叠按钮
+const folderHeader = document.querySelector('.folder-header'); // 文件夹头部
 
 // 中间笔记列表相关
 const noteListEl = document.querySelector('.note-list'); // 中间笔记列表容器
@@ -95,19 +141,24 @@ const addNoteBtn = document.querySelector('.add-circle-btn'); // 中间黄色的
 const deleteBtn = document.querySelector('.delete-btn'); // 右上角的删除按钮
 const editorTitle = document.getElementById('note-title');
 const editorContent = document.getElementById('note-content');
+const undoBtn = document.getElementById('undo-btn'); // 撤销按钮
 
-// --- 核心功能函数 ---
+// 高级功能相关
+const themeToggleBtn = document.getElementById('theme-toggle-btn'); // 主题切换按钮
+const mobileMenuBtn = document.getElementById('mobile-menu-btn'); // 移动端菜单按钮
+const mobileBackBtn = document.getElementById('mobile-back-btn'); // 移动端返回按钮
+const appContainer = document.querySelector('.app'); // 应用主容器
 
-// 保存数据到 LocalStorage
-// 每次数据变更后调用
-function saveAllToLocalStorage() {
-  localStorage.setItem('notes', JSON.stringify(notes));
-  localStorage.setItem('categories', JSON.stringify(categories));
-}
+// ----------------------------------------------------------------------------
+// B2. 时间格式化
+// ----------------------------------------------------------------------------
 
-// 时间格式化函数
-// @param {number} timestamp 毫秒时间戳
-// @return {string} 格式化后的时间字符串
+/**
+ * 时间格式化函数
+ * 将时间戳转换为人性化的相对时间显示
+ * @param {number} timestamp - 毫秒时间戳
+ * @return {string} 格式化后的时间字符串（刚刚、X分钟前、HH:MM、MM/DD、YYYY/MM/DD）
+ */
 function formatTime(timestamp) {
   // 兼容旧数据：如果是字符串且无法转为有效日期（例如 "刚刚"），直接返回
   if (typeof timestamp === 'string') {
@@ -154,10 +205,22 @@ function formatTime(timestamp) {
   }
 }
 
-// 渲染函数
-// 关键词高亮工具
-// @param {string} text - 原文本
-// @param {string} keyword - 搜索词
+// ----------------------------------------------------------------------------
+// B3. 文本处理 (预留)
+// ----------------------------------------------------------------------------
+// 目前没有专门的文本处理函数，留作扩展
+
+// ----------------------------------------------------------------------------
+// B4. 搜索与高亮
+// ----------------------------------------------------------------------------
+
+/**
+ * 关键词高亮工具函数
+ * 在文本中搜索关键词并用HTML标签高亮显示
+ * @param {string} text - 原始文本
+ * @param {string} keyword - 要高亮的搜索关键词
+ * @return {string} 包含高亮标签的HTML字符串
+ */
 function highlightText(text, keyword) {
   // 如果没搜词，直接返回原文本
   if (!keyword) return text;
@@ -169,7 +232,18 @@ function highlightText(text, keyword) {
   return text.replace(regex, '<span style="color: #10B981; font-weight: bold;">$1</span>');
 }
 
-// 渲染左侧"我的文件夹"列表(修改版：右键呼出菜单)
+// ============================================================================
+// 【模块C】UI渲染 🎨 (Rendering)
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// C1. 侧边栏渲染
+// ----------------------------------------------------------------------------
+
+/**
+ * 渲染左侧"我的文件夹"列表
+ * 支持拖拽功能和右键菜单（重命名、删除）
+ */
 function renderFolderList() {
   // 清空现有列表
   folderListEl.innerHTML = '';
@@ -190,7 +264,7 @@ function renderFolderList() {
       <span class="text">${category.name}</span>
     `;
 
-    // 右键点击事件：呼出菜单(修改版)
+    // 右键点击事件：呼出菜单
     li.addEventListener('contextmenu', (e) => {
       e.preventDefault(); // 阻止默认浏览器菜单
       showContextMenu(e, category.id); // 呼出我们的菜单
@@ -207,7 +281,9 @@ function renderFolderList() {
     li.addEventListener('drop', (e) => {
       e.preventDefault();
       li.classList.remove('drag-over');
-      const noteId = parseInt(e.dataTransfer.getData('text/plain')); // ID可以是字符串
+      // ID可能是数字也可能是字符串，统一处理
+      const rawId = e.dataTransfer.getData('text/plain');
+      const noteId = isNaN(rawId) ? rawId : parseInt(rawId);
       handleMoveNoteToCategory(noteId, category.id);
     });
 
@@ -218,11 +294,33 @@ function renderFolderList() {
   updateStaticNavHighlight();
 }
 
-// 渲染中间笔记列表
+/**
+ * 更新静态导航项的选中状态（全部、未分类等）
+ * 因为动态渲染会重绘文件夹，静态项需要手动维护 class
+ */
+function updateStaticNavHighlight() {
+  const allNavItems = document.querySelectorAll('.nav-item');
+  allNavItems.forEach(item => {
+    if (currentCategoryId === item.dataset.id) {
+      item.classList.add('active');
+    } else {
+      item.classList.remove('active');
+    }
+  });
+}
+
+// ----------------------------------------------------------------------------
+// C2. 笔记列表渲染
+// ----------------------------------------------------------------------------
+
+/**
+ * 渲染中间区域的笔记列表
+ * 功能：筛选、排序、搜索高亮、空状态处理、拖拽支持
+ */
 function renderNoteList() {
   // 1. 联合筛选：既要符合“分类”，又要符合“搜索词”
   const filteredNotes = notes.filter(note => {
-    // A. 搜索词筛选
+    // a. 搜索词筛选
     // 把标题和内容拼在一起搜，只要有一个包含关键词就算匹配
     const contentToSearch = (note.title + note.content).toLowerCase();
     const keyword = currentSearchKeyword.toLowerCase();
@@ -230,20 +328,20 @@ function renderNoteList() {
     // 如果搜不到，直接淘汰
     if (!contentToSearch.includes(keyword)) return false;
 
-    // B. 分类筛选 
-    // 1. 回收站
+    // b. 分类筛选 
+    // 回收站
     if (currentCategoryId === "trash") return note.categoryId === "trash";
-    // 2. 不在回收站
+    // 不在回收站时，绝对不能显示回收站的内容
     if (note.categoryId === "trash") return false;
-    // 3. 在全部笔记里隐藏私密笔记
+    // 在全部笔记里隐藏私密笔记
     if (currentCategoryId === "all") {
       return note.categoryId !== 'private';
     }
-    // 4. 其他普通情况
+    // 其他普通情况
     return note.categoryId === currentCategoryId;
   });
 
-  // 1.5 排序逻辑
+  // 2. 排序逻辑
   filteredNotes.sort((a, b) => {
     switch (currentSortMode) {
       case 'timeDesc': // 时间倒序（最新在前）
@@ -257,15 +355,15 @@ function renderNoteList() {
     }
   });
 
-  // 2. 更新顶部统计
+  // 3. 更新顶部统计
   if (noteCountEl) {
     noteCountEl.textContent = `共 ${filteredNotes.length} 条笔记`;
   }
 
-  // 3. 清空列表
+  // 4. 清空列表
   noteListEl.innerHTML = '';
 
-  // 4. 空状态处理
+  // 5. 空状态处理
   if (filteredNotes.length === 0) {
     // 如果是因为搜索没结果
     if (currentSearchKeyword) {
@@ -283,7 +381,7 @@ function renderNoteList() {
     return;
   }
 
-  // 5. 生成列表 (带高亮!)
+  // 6. 生成列表 (带高亮!)
   filteredNotes.forEach(note => {
     const li = document.createElement('li');
     li.dataset.id = note.id; // 方便以后精确找到它
@@ -302,7 +400,9 @@ function renderNoteList() {
 
     // 关键点：调用 highlightText 处理标题和预览
     const displayTitle = highlightText(note.title || '无标题', currentSearchKeyword);
-    const displayContent = highlightText(note.content || '无内容', currentSearchKeyword);
+    // 简单的去除 Markdown 符号逻辑，用于预览
+    const plainContent = (note.content || '').replace(/[#*`]/g, '').replace(/\n/g, ' ').substring(0, 50);
+    const displayContent = highlightText(plainContent || '无内容', currentSearchKeyword);
 
     li.innerHTML = `
       <div class="note-title">${displayTitle}</div>
@@ -316,141 +416,62 @@ function renderNoteList() {
       loadNoteToEditor(note);
 
       // 手机端自动进入编辑模式
-      document.querySelector('.app').classList.add('mobile-editing');
+      const appContainer = document.querySelector('.app');
+      if (appContainer) appContainer.classList.add('mobile-editing');
     });
 
     noteListEl.appendChild(li);
   });
 }
 
-// 加载笔记到右侧编辑器
+// ----------------------------------------------------------------------------
+// C3. 编辑器加载
+// ----------------------------------------------------------------------------
+
+/**
+ * 加载笔记到右侧编辑器 (完整版：带锁机制)
+ * @param {Object} note - 笔记对象
+ */
 function loadNoteToEditor(note) {
+  // 1. 上锁：告诉系统“正在加载，不是用户在打字”
+  isLoadingNote = true;
+
+  currentNoteId = note.id;
+
+  // 更新标题输入框
   editorTitle.value = note.title;
-  editorContent.value = note.content;
-}
 
-// 更新静态导航项的选中状态（全部、未分类等）
-// 因为动态渲染会重绘文件夹，静态项需要手动维护 class
-function updateStaticNavHighlight() {
-  const allNavItems = document.querySelectorAll('.nav-item');
-  allNavItems.forEach(item => {
-    if (currentCategoryId === item.dataset.id) {
-      item.classList.add('active');
-    } else {
-      item.classList.remove('active');
-    }
-  });
-}
+  // 更新编辑器内容
+  if (typeof easyMDE !== 'undefined' && easyMDE) {
+    easyMDE.value(note.content || "");
 
-// 交互逻辑处理
-
-/*
-// 左侧导航点击事件
-navItems.forEach(item => {
-  item.addEventListener('click', () => {
-    // 1. 样式切换
-    navItems.forEach(i => i.classList.remove('active'));
-    item.classList.add('active');
-
-    // 2. 逻辑切换
-    const categoryId = item.getAttribute('data-id');
-    const categoryName = item.querySelector('.text').textContent;
-
-    //更新状态
-    currentCategoryId = categoryId;
-    currentNoteId = null; // 切换分类时，清除当前选中笔记
-
-    // 更新UI
-    listTitleEl.textContent = categoryName; // 更新中间的大标题
-
-    // 重新渲染笔记列表
-    renderNoteList();
-
-    // 清空右侧编辑器
-    editorTitle.value = '';
-    editorContent.value = '';
-  });
-});
-*/
-
-// === 新增：切换分类的通用函数 ===
-function switchCategory(id, name) {
-  // 1. 更新状态
-  currentCategoryId = id;
-  currentNoteId = null; // 清除选中笔记
-
-  // 2. 更新UI
-  listTitleEl.textContent = name;
-  renderFolderList(); // 更新高亮
-  renderNoteList();   // 刷新列表
-
-  // 3. 清空编辑器
-  editorTitle.value = '';
-  if (typeof easyMDE !== 'undefined') {
-    easyMDE.value("");
+    // ⏳ 延迟解锁：等编辑器渲染完了，再把锁打开
+    // (这是为了防止 easyMDE 设置值时瞬间触发 change 事件)
+    setTimeout(() => {
+      isLoadingNote = false;
+    }, 200);
+  } else {
+    // 兼容没有 EasyMDE 的情况
+    editorContent.value = note.content || "";
+    isLoadingNote = false;
   }
 
-  // 4. 手机端自动收起侧边栏
-  if (window.innerWidth <= 768) {
-    sidebar.classList.remove('open');
-  }
+  // 移动端逻辑
+  const container = document.querySelector('.editor-container');
+  if (container) container.classList.remove('preview-mode');
+  editorTitle.disabled = false;
 }
 
-// A. 侧边栏点击逻辑 (使用事件委托，处理动态生成的元素)
-sidebar.addEventListener('click', (e) => {
-  // 找到被点击的.nav-item元素
-  const navItem = e.target.closest('.nav-item');
-
-  if (navItem) {
-    const targetId = navItem.dataset.id;
-    const targetName = navItem.querySelector('.text').textContent;
-
-    // 拦截
-    if (targetId === 'private') {
-      handlePrivateAccess(targetId, targetName);
-      return; // 阻止后续切换
-    }
-
-    // 普通分类直接切换
-    switchCategory(targetId, targetName);
-
-    /* // 切换分类
-    currentCategoryId = newCategoryId;
-    currentNoteId = null; // 切换分类时，清除当前选中笔记
-
-    // 更新UI
-    listTitleEl.textContent = categoryName; // 更新中间的大标题
-    renderFolderList(); // 重新渲染文件夹列表以更新选中状态
-    renderNoteList(); // 重新渲染笔记列表
-
-    // 清空右侧编辑器
-    editorTitle.value = '';
-    editorContent.value = ''; */
-  }
-});
-
-// B0. 文件夹列表展开/收起按钮点击事件
-const folderToggleBtn = document.getElementById('folder-toggle-btn');
-const folderHeader = document.querySelector('.folder-header');
-
-if (folderToggleBtn && folderListEl) {
-  folderToggleBtn.addEventListener('click', (e) => {
-    e.stopPropagation(); // 阻止事件冒泡，避免触发侧边栏点击事件
-
-    // 1. 切换列表的 collapsed 类
-    folderListEl.classList.toggle('collapsed');
-
-    // 2. 切换头部的 collapsed 类 (用于旋转箭头)
-    folderHeader.classList.toggle('collapsed');
-  });
-}
+// ----------------------------------------------------------------------------
+// C4. 弹窗渲染
+// ----------------------------------------------------------------------------
 
 // ===========================================
 // 🎨 自定义弹窗逻辑 (增强版：支持输入 & 确认)
 // ===========================================
 const modalOverlay = document.getElementById('custom-modal');
 const modalTitle = document.getElementById('modal-title');
-const modalDesc = document.getElementById('modal-desc'); // 新增
+const modalDesc = document.getElementById('modal-desc');
 const modalInput = document.getElementById('modal-input');
 const modalConfirmBtn = document.getElementById('modal-confirm');
 const modalCancelBtn = document.getElementById('modal-cancel');
@@ -458,15 +479,20 @@ const modalCancelBtn = document.getElementById('modal-cancel');
 let onModalConfirm = null;
 let isInputMode = true; // 标记当前是输入模式还是纯确认模式
 
-// 1. 显示输入框弹窗 (新建文件夹、密码等)
+/**
+ * 显示输入框弹窗（用于新建文件夹、设置密码等需要用户输入的场景）
+ * @param {string} title - 弹窗标题
+ * @param {string} placeholder - 输入框占位符
+ * @param {Function} callback - 确认后的回调函数，接收输入值作为参数
+ */
 function showModal(title, placeholder, callback) {
   isInputMode = true;
   modalTitle.textContent = title;
-  
+
   // UI 切换：显示输入框，隐藏文本
   modalInput.style.display = 'block';
   modalDesc.style.display = 'none';
-  
+
   modalInput.placeholder = placeholder;
   modalInput.value = '';
 
@@ -482,7 +508,12 @@ function showModal(title, placeholder, callback) {
   onModalConfirm = callback;
 }
 
-// 2. 显示确认弹窗 (删除确认等)
+/**
+ * 显示确认弹窗（用于删除确认等只需确认/取消的场景）
+ * @param {string} title - 弹窗标题
+ * @param {string} message - 提示消息
+ * @param {Function} callback - 确认后的回调函数
+ */
 function showConfirm(title, message, callback) {
   isInputMode = false;
   modalTitle.textContent = title;
@@ -496,7 +527,9 @@ function showConfirm(title, message, callback) {
   onModalConfirm = callback;
 }
 
-// 隐藏弹窗
+/**
+ * 隐藏弹窗并清理状态
+ */
 function hideModal() {
   modalOverlay.style.display = 'none';
   onModalConfirm = null;
@@ -531,16 +564,82 @@ if (modalInput) {
   });
 }
 
+// ============================================================================
+// 【模块D】事件处理 ⚡ (Event Handlers)
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// D1. 分类切换
+// ----------------------------------------------------------------------------
+
+/**
+ * 切换分类的通用函数
+ * 更新当前分类ID、刷新UI、清空编辑器，处理移动端自动收起侧边栏
+ * @param {string} id - 分类ID
+ * @param {string} name - 分类名称
+ */
+function switchCategory(id, name) {
+  // 1. 更新状态
+  currentCategoryId = id;
+  currentNoteId = null; // 清除选中笔记
+
+  // 2. 更新UI
+  listTitleEl.textContent = name;
+  renderFolderList(); // 更新高亮
+  renderNoteList();   // 刷新列表
+
+  // 3. 清空编辑器
+  editorTitle.value = '';
+  // 如果EasyMDE已加载，清空它
+  if (typeof easyMDE !== 'undefined' && easyMDE) {
+    easyMDE.value("");
+  }
+
+  // 4. 手机端自动收起侧边栏
+  if (window.innerWidth <= 768) {
+    sidebar.classList.remove('open');
+  }
+}
+
+// 侧边栏点击事件监听（使用事件委托处理动态元素）
+sidebar.addEventListener('click', (e) => {
+  // 找到被点击的.nav-item元素
+  const navItem = e.target.closest('.nav-item');
+
+  if (navItem) {
+    const targetId = navItem.dataset.id;
+    const targetName = navItem.querySelector('.text').textContent;
+
+    // 🔒 拦截私密笔记（逻辑在模块F1，JS会自动提升函数声明，此处调用没问题）
+    if (targetId === 'private') {
+      if (typeof handlePrivateAccess === 'function') {
+        handlePrivateAccess(targetId, targetName);
+      } else {
+        // 防止 F模块还没粘贴时报错
+        console.warn('私密笔记模块尚未加载');
+      }
+      return;
+    }
+
+    // 普通分类直接切换
+    switchCategory(targetId, targetName);
+  }
+});
+
+
+// ----------------------------------------------------------------------------
+// D2. 笔记CRUD (创建、读取、更新、删除)
+// ----------------------------------------------------------------------------
+
 // ===========================================
-// B1. 新增文件夹 (修改版：使用自定义弹窗)
+// D2-1. 新增文件夹（使用自定义弹窗）
 // ===========================================
 if (addFolderBtn) {
   addFolderBtn.addEventListener('click', (e) => {
     e.stopPropagation();
 
-    // 调用刚写的漂亮弹窗
+    // 调用模块C4定义的弹窗
     showModal('新建文件夹', '请输入文件夹名称', (folderName) => {
-      // 这里是点确定后执行的逻辑 (和原来一样)
       const newCategory = {
         id: 'folder-' + Date.now(),
         name: folderName
@@ -552,56 +651,129 @@ if (addFolderBtn) {
   });
 }
 
-/* // B1. 新增文件夹按钮点击事件
-if (addFolderBtn) {
-  addFolderBtn.addEventListener('click', (e) => {
-    e.stopPropagation(); // 阻止事件冒泡，避免触发侧边栏点击事件
-    const folderName = prompt('请输入新文件夹名称：');
-    if (folderName) {
-      const newCategory = {
-        id: 'folder-' + Date.now(), // 使用时间戳生成唯一ID
-        name: folderName
-      };
-      categories.push(newCategory);
-      // 保存数据到 LocalStorage
-      saveAllToLocalStorage();
-      renderFolderList();
+// ===========================================
+// D2-2. 新增笔记（实时保存）
+// ===========================================
+if (addNoteBtn) {
+  addNoteBtn.addEventListener('click', () => {
+    // 1. 创建新笔记对象
+    const newId = String(Date.now()); // 使用时间戳作为唯一ID
+
+    // 确定新笔记的分类：如果是全部/未分类/待办，默认归入未分类；否则归入当前文件夹
+    let targetCategoryId = currentCategoryId;
+    if (currentCategoryId === "all" || currentCategoryId.startsWith('todo')) {
+      targetCategoryId = "uncategorized";
     }
+
+    const newNote = {
+      id: newId,
+      title: '新建笔记',
+      content: '',
+      updateTime: Date.now(),
+      categoryId: targetCategoryId
+    };
+
+    // 2. 添加到数据数组最前面
+    notes.unshift(newNote);
+    saveAllToLocalStorage();
+
+    // 3. 选中这个新笔记
+    currentNoteId = newId;
+
+    // 4. 重新渲染笔记列表
+    renderNoteList();
+
+    // 5. 加载新笔记到编辑器 (调用模块C3)
+    loadNoteToEditor(newNote);
+
+    // 6. 自动聚焦标题输入框
+    editorTitle.focus();
   });
-} */
-
-// ===========================================
-// 🔒 定义一个锁，防止加载笔记时触发“修改事件”
-// ===========================================
-
-// B2. 加载笔记到编辑器 (修改版)
-function loadNoteToEditor(note) {
-  // 1. 上锁：告诉系统“正在加载，不是用户在打字”
-  isLoadingNote = true;
-
-  currentNoteId = note.id;
-
-  // 更新标题输入框
-  editorTitle.value = note.title;
-
-  // 更新编辑器内容
-  if (easyMDE) {
-    easyMDE.value(note.content || "");
-
-    // ⏳ 延迟解锁：等编辑器渲染完了，再把锁打开
-    // (这是为了防止 easyMDE 设置值时瞬间触发 change 事件)
-    setTimeout(() => {
-      isLoadingNote = false;
-    }, 200);
-  }
-
-  // 移动端逻辑 (保持不变)
-  const container = document.querySelector('.editor-container');
-  container.classList.remove('preview-mode');
-  editorTitle.disabled = false;
 }
 
-// C. 删除文件夹处理函数
+// ===========================================
+// D2-3. 标题实时编辑与保存
+// ===========================================
+if (editorTitle) {
+  editorTitle.addEventListener('input', (e) => {
+    if (currentNoteId) {
+      const note = notes.find(n => n.id == currentNoteId); // == 兼容数字和字符串
+      if (note) {
+        // 1. 更新内存数据
+        note.title = e.target.value;
+        note.updateTime = Date.now();
+
+        // 2. 存进硬盘
+        saveAllToLocalStorage();
+
+        // 3. 性能优化：只更新左侧列表里当前这一项的文字 (不重排整个列表)
+        const activeTitle = document.querySelector(`.note-item[data-id="${currentNoteId}"] .note-title`);
+        if (activeTitle) {
+          activeTitle.textContent = note.title || '无标题';
+        }
+      }
+    }
+  });
+}
+
+// ===========================================
+// D2-4. 删除笔记（移入回收站或永久删除）
+// ===========================================
+if (deleteBtn) {
+  deleteBtn.addEventListener('click', () => {
+    if (!currentNoteId) {
+      alert('请先选择一条要删除的笔记');
+      return;
+    }
+
+    const currentNote = notes.find(n => n.id == currentNoteId);
+    if (!currentNote) return;
+
+    // 场景 A：从回收站永久删除
+    if (currentCategoryId === "trash") {
+      showConfirm('永久删除', '确定要永久销毁这条笔记吗？此操作无法撤销。', () => {
+        notes = notes.filter(n => n.id != currentNoteId);
+        saveAllToLocalStorage();
+
+        // 调用重置编辑器 (模块F4，暂未加载时需注意)
+        if (typeof resetEditor === 'function') resetEditor();
+        else {
+          // 简单回退策略
+          editorTitle.value = '';
+          currentNoteId = null;
+        }
+
+        renderNoteList();
+      });
+      return;
+    }
+
+    // 场景 B：移入回收站
+    showConfirm('移入回收站', '确定要将这条笔记丢进回收站吗？', () => {
+      currentNote.categoryId = "trash";
+      currentNote.updateTime = Date.now();
+      saveAllToLocalStorage();
+
+      if (typeof resetEditor === 'function') resetEditor();
+      else {
+        editorTitle.value = '';
+        currentNoteId = null;
+      }
+
+      renderNoteList();
+    });
+  });
+}
+
+// ===========================================
+// D2-5. 删除文件夹逻辑
+// ===========================================
+
+/**
+ * 删除文件夹处理函数
+ * 将文件夹内的笔记移动到"未分类"，然后删除文件夹
+ * @param {Object} category - 分类对象
+ */
 function handleDeleteFolder(category) {
   if (confirm(`确定要删除文件夹 "${category.name}" 及其所有笔记吗？`)) {
     // 1. 找到属于该分类的所有笔记，把它们移到 'uncategorized'
@@ -627,9 +799,18 @@ function handleDeleteFolder(category) {
   }
 }
 
-// C2. 移动笔记到指定分类（拖拽使用）
+// ----------------------------------------------------------------------------
+// D3. 拖拽功能
+// ----------------------------------------------------------------------------
+
+/**
+ * 移动笔记到指定分类（拖拽使用）
+ * @param {number|string} noteId - 笔记ID
+ * @param {string} categoryId - 目标分类ID
+ */
 function handleMoveNoteToCategory(noteId, categoryId) {
-  const note = notes.find(n => n.id === noteId);
+  // == 兼容ID类型差异
+  const note = notes.find(n => n.id == noteId);
   if (!note) return;
 
   // 如果已经在这个分类，不做任何操作
@@ -646,152 +827,49 @@ function handleMoveNoteToCategory(noteId, categoryId) {
   note.updateTime = Date.now();
   saveAllToLocalStorage();
   renderNoteList();
-
-  // 可选：显示一个简短的提示
-  console.log(`笔记 "${note.title}" 已移动到新分类`);
 }
 
+// 初始化静态导航项的拖拽目标 (全部、未分类等)
+const staticNavItemsForDrag = document.querySelectorAll('.nav-item[data-id]');
+staticNavItemsForDrag.forEach(navItem => {
+  const categoryId = navItem.dataset.id;
 
-// D. 新增笔记按钮点击事件(新增：实时保存)
-if (addNoteBtn) {
-  addNoteBtn.addEventListener('click', () => {
-    // 1. 创建新笔记对象
-    const newId = String(Date.now()); // 使用时间戳作为唯一ID -> 转换为字符串
-    // 确定新笔记的分类：如果是全部/未分类，归入未分类；否则归入当前选中的文件夹
-    let targetCategoryId = currentCategoryId;
-    if (currentCategoryId === "all" || currentCategoryId.startsWith('todo')) {
-      targetCategoryId = "uncategorized";
-    }
+  // 跳过不能接收笔记的分类（如全部、待办等逻辑上不适合直接拖入的）
+  // 注意：原代码允许拖入 'uncategorized' 或其他自定义ID
+  if (['all', 'todo-unfinished', 'todo-finished'].includes(categoryId)) return;
 
-    const newNote = {
-      id: newId,
-      title: '新建笔记',
-      content: '',
-      updateTime: Date.now(),
-      // 如果当前分类是'all'，则默认分类为'uncategorized', 否则为当前分类
-      categoryId: targetCategoryId
-    };
-
-    // 2. 添加到数据数组最前面
-    notes.unshift(newNote);
-    // 保存数据到 LocalStorage
-    saveAllToLocalStorage();
-
-    // 3. 选中这个新笔记
-    currentNoteId = newId;
-    // 如果当前在“全部”视图，或者就在目标视图，直接渲染
-    // 如果当前在别的视图（很少见），为了体验，强行切过去也行，这里保持当前视图逻辑
-
-    // 4. 重新渲染笔记列表
-    renderNoteList();
-
-    // 5. 加载新笔记到编辑器
-    loadNoteToEditor(newNote);
-
-    // 6. 自动聚焦标题输入框, 方便直接输入
-    editorTitle.focus();
+  navItem.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    navItem.classList.add('drag-over');
   });
-}
-
-// D2. 标题输入监听 (确保改名实时保存)
-if (editorTitle) {
-  editorTitle.addEventListener('input', (e) => {
-    if (currentNoteId) {
-      const note = notes.find(n => n.id === currentNoteId);
-      if (note) {
-        // 1. 更新内存数据
-        note.title = e.target.value;
-        note.updateTime = Date.now();
-
-        // 2. 🔥 存进硬盘！
-        saveAllToLocalStorage();
-
-        // 3. 只更新左侧列表里当前这一项的文字 (不重排列表)
-        const activeTitle = document.querySelector(`.note-item[data-id="${currentNoteId}"] .note-title`);
-        if (activeTitle) {
-          activeTitle.textContent = note.title || '无标题';
-        }
-      }
-    }
+  navItem.addEventListener('dragleave', () => {
+    navItem.classList.remove('drag-over');
   });
-}
-
-// E. 实时编辑与保存：标题和内容输入框监听
-[editorTitle, editorContent].forEach(input => {
-  input.addEventListener('input', () => {
-    // 如果没有选中笔记，不允许编辑
-    if (!currentNoteId) return;
-
-    // 获取当前编辑的笔记对象
-    const currentNote = notes.find(n => n.id === currentNoteId);
-
-    if (currentNote) {
-      // 更新数据
-      currentNote.title = editorTitle.value;
-      currentNote.content = editorContent.value;
-      currentNote.updateTime = Date.now(); // 存时间戳
-
-      // 保存数据到 LocalStorage
-      saveAllToLocalStorage();
-      // 重新渲染笔记列表，更新预览和时间
-      renderNoteList();
-
-      // 重绘后焦点可能会丢失，简单处理：保持 focus 状态 (浏览器默认行为通常能保持)
-      // 如果发现输入卡顿或焦点丢失，可以优化这里的逻辑
-    }
+  navItem.addEventListener('drop', (e) => {
+    e.preventDefault();
+    navItem.classList.remove('drag-over');
+    const rawId = e.dataTransfer.getData('text/plain');
+    const noteId = isNaN(rawId) ? rawId : parseInt(rawId);
+    handleMoveNoteToCategory(noteId, categoryId);
   });
 });
 
-// F. 删除笔记按钮点击事件 (使用漂亮弹窗)
-if (deleteBtn) {
-  deleteBtn.addEventListener('click', () => {
-    if (!currentNoteId) {
-      alert('请先选择一条要删除的笔记');
-      return;
-    }
+// ----------------------------------------------------------------------------
+// D4. 搜索与排序
+// ----------------------------------------------------------------------------
 
-    const currentNote = notes.find(n => n.id == currentNoteId);
-    if (!currentNote) return;
-
-    // 场景 A：从回收站永久删除
-    if (currentCategoryId === "trash") {
-      showConfirm('永久删除', '确定要永久销毁这条笔记吗？此操作无法撤销。', () => {
-         // 执行删除逻辑
-         notes = notes.filter(n => n.id != currentNoteId);
-         saveAllToLocalStorage();
-         resetEditor(); // 强力清空
-         renderNoteList();
-      });
-      return;
-    }
-
-    // 场景 B：移入回收站
-    showConfirm('移入回收站', '确定要将这条笔记丢进回收站吗？', () => {
-       // 执行移动逻辑
-       currentNote.categoryId = "trash";
-       currentNote.updateTime = Date.now();
-       saveAllToLocalStorage();
-       resetEditor(); // 强力清空
-       renderNoteList();
-    });
-  });
-}
-
-// G. 搜索功能
+// 搜索输入
 if (searchInput) {
   searchInput.addEventListener('input', (e) => {
-    // 1. 更新全局搜索词状态
     currentSearchKeyword = e.target.value.trim();
-
-    // 2. 重新渲染列表 (renderNoteList 会自己去读 currentSearchKeyword)
-    renderNoteList();
+    renderNoteList(); // 重新渲染列表会读取 keyword
   });
 }
 
-// H. 排序按钮点击事件 switch sort mode
+// 排序按钮切换
 if (sortActionBtn) {
   sortActionBtn.addEventListener('click', () => {
-    // Cycle: timeDesc -> timeAsc -> titleAsc -> timeDesc
+    // 循环切换：时间倒序 -> 时间正序 -> 标题排序
     if (currentSortMode === 'timeDesc') {
       currentSortMode = 'timeAsc';
       sortActionBtn.innerHTML = '按时间正序 <i class="fa-solid fa-arrow-up"></i>';
@@ -806,156 +884,28 @@ if (sortActionBtn) {
   });
 }
 
-//  --- 手机端适配逻辑 (Mobile Logic) --- 
+// ============================================================================
+// 【模块E】编辑器集成 ✏️ (Editor)
+// ============================================================================
 
-const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-const mobileBackBtn = document.getElementById('mobile-back-btn');
-const appContainer = document.querySelector('.app');
+// ----------------------------------------------------------------------------
+// E1. EasyMDE初始化
+// ----------------------------------------------------------------------------
 
-// 1. 点击菜单按钮 -> 切换侧边栏
-if (mobileMenuBtn) {
-  mobileMenuBtn.addEventListener('click', () => {
-    sidebar.classList.toggle('open');
-  });
-}
-
-// 2. 点击侧边栏里的任意项 -> 自动收起侧边栏
-sidebar.addEventListener('click', (e) => {
-  if (window.innerWidth <= 768 && e.target.closest('.nav-item')) {
-    sidebar.classList.remove('open');
-  }
-});
-
-// 3. 点击返回按钮 -> 退出编辑模式，回到列表
-if (mobileBackBtn) {
-  mobileBackBtn.addEventListener('click', () => {
-    appContainer.classList.remove('mobile-editing');
-    // 可选：清空选中状态
-    currentNoteId = null;
-    const activeItem = document.querySelector('.note-item.active');
-    if (activeItem) activeItem.classList.remove('active');
-  });
-}
-
-// 5. 初始化
-renderFolderList();
-renderNoteList();
-
-// 6. 为静态导航项添加拖放目标功能（全部、未分类等）
-const staticNavItems = document.querySelectorAll('.nav-item[data-id]');
-staticNavItems.forEach(navItem => {
-  const categoryId = navItem.dataset.id;
-
-  // 跳过不能接收笔记的分类（如待办、私密等）
-  if (['all', 'todo-unfinished', 'todo-finished'].includes(categoryId)) return;
-
-  navItem.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    navItem.classList.add('drag-over');
-  });
-  navItem.addEventListener('dragleave', () => {
-    navItem.classList.remove('drag-over');
-  });
-  navItem.addEventListener('drop', (e) => {
-    e.preventDefault();
-    navItem.classList.remove('drag-over');
-    const noteId = parseInt(e.dataTransfer.getData('text/plain'));
-    handleMoveNoteToCategory(noteId, categoryId);
-  });
-});
-
-// === 主题切换逻辑 ===
-const themeToggleBtn = document.getElementById('theme-toggle-btn');
-
-// 初始化主题：从 localStorage 读取用户偏好
-function initTheme() {
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    updateThemeIcon(true);
-  } else {
-    document.documentElement.removeAttribute('data-theme');
-    updateThemeIcon(false);
-  }
-}
-
-// 更新按钮图标
-function updateThemeIcon(isDark) {
-  if (themeToggleBtn) {
-    const icon = themeToggleBtn.querySelector('i');
-    if (isDark) {
-      icon.className = 'fa-solid fa-sun'; // 深色模式显示太阳
-    } else {
-      icon.className = 'fa-solid fa-moon'; // 浅色模式显示月亮
-    }
-  }
-}
-
-// 切换主题
-function toggleTheme() {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  if (isDark) {
-    document.documentElement.removeAttribute('data-theme');
-    localStorage.setItem('theme', 'light');
-    updateThemeIcon(false);
-  } else {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    localStorage.setItem('theme', 'dark');
-    updateThemeIcon(true);
-  }
-}
-
-// 绑定点击事件
-if (themeToggleBtn) {
-  themeToggleBtn.addEventListener('click', toggleTheme);
-}
-
-// 页面加载时初始化主题
-initTheme();
-
-/* // 预览功能
-const previewBtn = document.getElementById('preview-btn');
-const editorContainer = document.querySelector('.editor-container');
-const previewArea = document.getElementById('note-preview-area');
-
-if (previewBtn) {
-  previewBtn.addEventListener('click', () => {
-    editorContainer.classList.toggle('previewing-mode');
-    const isPreview = editorContainer.classList.contains('previewing-mode');
-
-    if (isPreview) {
-      // marked.parse() 将 Markdown 转换为 HTML
-      previewArea.innerHTML = marked.parse(editorContent.value || '无内容');
-      previewBtn.innerHTML = '<i class="fa-solid fa-pen"></i>'; // 换图标
-
-      // 修改悬浮提示
-      previewBtn.title = "编辑模式";
-
-      editorTitle.disabled = true; // 预览时禁用标题
-      editorContent.disabled = true; // 预览时禁用内容
-    } else {
-      previewBtn.innerHTML = '<i class="fa-solid fa-eye"></i>'; // 换图标
-
-      // 修改悬浮提示
-      previewBtn.title = "预览模式";
-
-      editorTitle.disabled = false;
-      editorContent.disabled = false;
-    }
-  });
-} */
-
-// --- EasyMDE 初始化（完整版） ---  
 let easyMDE = null;
 
-if (document.getElementById('note-content')) {
+// 检查页面是否存在编辑器元素，避免报错
+if (editorContent) {
   easyMDE = new EasyMDE({
-    element: document.getElementById('note-content'),
+    element: editorContent,
     spellChecker: false,
-    status: false,
+    status: false, // 底部状态栏
     autofocus: false,
-    hideIcons: ['fullscreen', 'side-by-side'], // 只隐藏有问题的side-by-side
-    // 自定义工具栏配置
+    hideIcons: ['fullscreen', 'side-by-side'], // 隐藏可能有bug的模式
+
+    // ------------------------------------------------------------------------
+    // E2. 自定义工具栏
+    // ------------------------------------------------------------------------
     toolbar: [
       {
         name: "bold",
@@ -1026,6 +976,10 @@ if (document.getElementById('note-content')) {
         className: "fa fa-link",
         title: "插入链接 Ctrl+K"
       },
+
+      // ----------------------------------------------------------------------
+      // E3. 图片上传 (本地图片转 Base64)
+      // ----------------------------------------------------------------------
       {
         name: "upload-image",
         action: function uploadImage(editor) {
@@ -1036,20 +990,25 @@ if (document.getElementById('note-content')) {
           input.onchange = async (e) => {
             const file = e.target.files[0];
             if (file) {
-              // 检查文件大小（限制500KB）
+              // 限制大小 500KB
               if (file.size > 500 * 1024) {
                 alert('图片大小不能超过500KB，请选择更小的图片');
                 return;
               }
 
-              // 读取图片并转为base64
+              // 读取并转 Base64
               const reader = new FileReader();
               reader.onload = (event) => {
                 const base64 = event.target.result;
                 const cm = editor.codemirror;
                 const pos = cm.getCursor();
                 const imageMarkdown = `![${file.name}](${base64})`;
+
+                // 插入代码
                 cm.replaceRange(imageMarkdown, pos);
+
+                // 🔥 手动触发保存 (修复图片上传不自动保存的问题)
+                CodeMirror.signal(cm, "change", cm);
               };
               reader.readAsDataURL(file);
             }
@@ -1060,6 +1019,10 @@ if (document.getElementById('note-content')) {
         title: "上传图片(本地)"
       },
       "|",
+
+      // ----------------------------------------------------------------------
+      // E4. 预览模式
+      // ----------------------------------------------------------------------
       {
         name: "preview",
         action: function customPreview(editor) {
@@ -1067,7 +1030,7 @@ if (document.getElementById('note-content')) {
           const previewArea = document.getElementById('note-preview-area');
           const isPreview = container.classList.contains('preview-mode');
 
-          // 1. 找到预览按钮 (无论它现在是眼睛还是笔，都能找到)
+          // 找到工具栏上的按钮
           const previewBtn = document.querySelector('.editor-toolbar .fa-eye') ||
             document.querySelector('.editor-toolbar .fa-pen');
 
@@ -1078,26 +1041,30 @@ if (document.getElementById('note-content')) {
 
             // 🔄 图标变回“眼睛”
             if (previewBtn) {
-              previewBtn.classList.remove('fa-pen'); // 移除笔
-              previewBtn.classList.add('fa-eye');    // 加上眼睛
-              previewBtn.title = "预览";             // 提示文字也能改
+              previewBtn.classList.remove('fa-pen');
+              previewBtn.classList.add('fa-eye');
+              previewBtn.title = "预览";
             }
-
           } else {
             // B. 进入预览模式
             container.classList.add('preview-mode');
-            previewArea.innerHTML = marked.parse(editor.value() || '# 无内容');
+            // 使用 marked 库渲染 HTML
+            if (typeof marked !== 'undefined') {
+              previewArea.innerHTML = marked.parse(editor.value() || '# 无内容');
+            } else {
+              previewArea.innerHTML = '<p style="color:red">Marked.js 库未加载</p>';
+            }
             editorTitle.disabled = true;
 
-            // 🔄 图标变成“笔” (代表去编辑)
+            // 🔄 图标变成“笔”
             if (previewBtn) {
-              previewBtn.classList.remove('fa-eye'); // 移除眼睛
-              previewBtn.classList.add('fa-pen');    // 加上笔
+              previewBtn.classList.remove('fa-eye');
+              previewBtn.classList.add('fa-pen');
               previewBtn.title = "返回编辑";
             }
           }
         },
-        className: "fa fa-eye", // 初始状态是眼睛
+        className: "fa fa-eye", // 初始图标
         title: "预览"
       },
       "|",
@@ -1106,27 +1073,28 @@ if (document.getElementById('note-content')) {
         action: function toggleSidebar(editor) {
           const sidebar = document.querySelector('.sidebar');
           const listView = document.querySelector('.list-view');
-          sidebar.classList.toggle('collapsed');
-          listView.classList.toggle('collapsed');
 
-          // 刷新CodeMirror以适应新宽度
-          setTimeout(() => {
-            if (editor && editor.codemirror) {
-              editor.codemirror.refresh();
-            }
-          }, 300);
+          if (sidebar && listView) {
+            sidebar.classList.toggle('collapsed');
+            listView.classList.toggle('collapsed');
+
+            // 刷新CodeMirror以适应新宽度
+            setTimeout(() => {
+              if (editor && editor.codemirror) {
+                editor.codemirror.refresh();
+              }
+            }, 300);
+          }
         },
         className: "fa fa-bars",
         title: "收起/展开侧边栏"
       }
     ],
     placeholder: "开始记录你的想法...",
-    // 禁用可能导致冲突的快捷键
     shortcuts: {
-      toggleFullScreen: null,
+      toggleFullScreen: null, // 禁用可能冲突的快捷键
       toggleSideBySide: null
     },
-    // 其他配置
     tabSize: 4,
     indentWithTabs: false,
     lineWrapping: true,
@@ -1136,23 +1104,24 @@ if (document.getElementById('note-content')) {
   // 设置撤销延迟
   easyMDE.codemirror.setOption("historyEventDelay", 200);
 
-  // 【关键代码】把 EasyMDE 的工具栏搬到最上面的 .toolbar 里
+  // 【关键 UI 逻辑】把 EasyMDE 的工具栏搬到最上面的 .toolbar 容器里
+  // 这样可以让工具栏和标题栏融为一体
   const easyMDEToolbar = document.querySelector('.editor-toolbar');
   const mainToolbar = document.querySelector('.toolbar');
   const rightTools = document.querySelector('.tool-right');
 
   if (easyMDEToolbar && mainToolbar && rightTools) {
-    // 移除 EasyMDE 默认样式
+    // 移除默认边框和背景，让它融入主工具栏
     easyMDEToolbar.style.border = 'none';
     easyMDEToolbar.style.borderRadius = '0';
     easyMDEToolbar.style.backgroundColor = 'transparent';
     easyMDEToolbar.style.padding = '0';
 
-    // 把工具栏插入到主工具栏左侧
+    // 插入到主工具栏左侧
     mainToolbar.insertBefore(easyMDEToolbar, rightTools);
   }
 
-  // 修复 CodeMirror 高度自适应
+  // 修复初始化时的高度问题
   setTimeout(() => {
     if (easyMDE && easyMDE.codemirror) {
       easyMDE.codemirror.refresh();
@@ -1160,102 +1129,93 @@ if (document.getElementById('note-content')) {
   }, 100);
 
   // ===========================================
-  // 💾 数据同步逻辑 (修复版：静默保存，不跳动)
+  // 💾 数据同步逻辑 (核心：静默保存，不跳动)
   // ===========================================
   easyMDE.codemirror.on("change", () => {
-    // 🔒 如果锁是锁着的，说明是系统在加载，不是人在打字，直接无视
+    // 🔒 如果锁是锁着的，说明是系统在加载笔记，不是人在打字，直接忽略
     if (isLoadingNote) return;
 
     const val = easyMDE.value();
     if (currentNoteId) {
-      const note = notes.find(n => n.id == currentNoteId); // 数字和字符串统一
-      
+      const note = notes.find(n => n.id == currentNoteId);
+
       if (note) {
-        // 更新内容和时间
+        // 1. 更新内存数据
         note.content = val;
         note.updateTime = Date.now();
 
-        // 关键修改：只保存数据，不重绘列表！
-        // renderNoteList();  
-        // 这样你在打字时，左侧列表就不会动了。
-
+        // 2. 存进硬盘
         saveAllToLocalStorage();
 
-        // 核心修复：手动更新左侧列表的 UI (不重排)
-        const noteItem = document.querySelector(`.note-item[data-id="${currentNoteId}"]`); // 假设你给li加了data-id
-        // 如果你的 li 没有 data-id，可能需要改 renderNoteList 给它加上，或者通过其他方式找
-        
-        // 这里假设 renderNoteList 里生成的 li 还没有 data-id，我们需要去 renderNoteList 加一行代码！
-        // 暂时先用这一招：
-        // 尝试找到当前 active 的 li (因为正在编辑的肯定是被选中的)
+        // 3. 手动更新左侧列表的 UI (不调用renderNoteList重排，防止列表跳动)
+        // 尝试找到当前 active 的 li
         const activeItem = document.querySelector('.note-item.active');
-        
+
         if (activeItem) {
-            // A. 更新预览文字 (提取前30个字)
-            const previewDiv = activeItem.querySelector('.note-preview');
-            if (previewDiv) {
-                // 简单的去除 Markdown 符号逻辑
-                const plainText = val.replace(/[#*`]/g, '').replace(/\n/g, ' ').substring(0, 50);
-                // 如果有搜索词，记得高亮(这里简单处理，直接显示文字)
-                previewDiv.textContent = plainText || '无内容';
-            }
-            
-            // B. 更新时间
-            const dateDiv = activeItem.querySelector('.note-date');
-            if (dateDiv) {
-                dateDiv.textContent = '刚刚';
-            }
+          // A. 更新预览文字 (简单的去除 Markdown 符号)
+          const previewDiv = activeItem.querySelector('.note-preview');
+          if (previewDiv) {
+            const plainText = val.replace(/[#*`]/g, '').replace(/\n/g, ' ').substring(0, 50);
+            previewDiv.textContent = plainText || '无内容';
+          }
+
+          // B. 更新时间为"刚刚"
+          const dateDiv = activeItem.querySelector('.note-date');
+          if (dateDiv) {
+            dateDiv.textContent = '刚刚';
+          }
         }
       }
     }
   });
 
-  // 支持粘贴图片(Ctrl+V)
+  // ===========================================
+  // 📋 支持粘贴图片 (Ctrl+V)
+  // ===========================================
   easyMDE.codemirror.on("paste", function (editor, e) {
     if (!(e.clipboardData && e.clipboardData.items)) return;
+
     for (let i = 0, len = e.clipboardData.items.length; i < len; i++) {
       let item = e.clipboardData.items[i];
       if (item.type.indexOf("image") !== -1) {
-        e.preventDefault();
+        e.preventDefault(); // 阻止默认粘贴行为
+
         let blob = item.getAsFile();
         let reader = new FileReader();
-        reader.onload = function (event) {
-          let base64 = event.target.result;
-          let markdownImage = `\n![粘贴的图片](${base64})\n`;
-          editor.replaceSelection(markdownImage);
-          reader.onload = function (event) {
-            let base64 = event.target.result;
-            let markdownImage = `\n![粘贴的图片](${base64})\n`;
-            editor.replaceSelection(markdownImage);
 
-            // 新增：粘贴完图片，立马触发一次保存！
-            // 手动触发 change 事件，让上面的同步逻辑工作
-            CodeMirror.signal(editor, "change", editor);
-          };
+        reader.onload = function (event) {
+          const base64 = event.target.result;
+          const markdownImage = `\n![粘贴的图片](${base64})\n`;
+
+          // 1. 插入 Markdown 代码
+          editor.replaceSelection(markdownImage);
+
+          // 2. 🔥 修复：粘贴完立马手动触发 change 事件，确保保存！
+          CodeMirror.signal(editor, "change", editor);
         };
+
         reader.readAsDataURL(blob);
-        return;
+        return; // 处理完图片就退出
       }
     }
   });
 }
 
+// ============================================================================
+// 【模块F】高级功能 🚀 (Advanced)
+// ============================================================================
 
-const undoBtn = document.getElementById('undo-btn');
+// ----------------------------------------------------------------------------
+// F1. 私密笔记
+// ----------------------------------------------------------------------------
 
-if (undoBtn) {
-  undoBtn.addEventListener('click', () => {
-    // 检查编辑器是否已加载
-    if (easyMDE && easyMDE.codemirror) {
-      // 调用 CodeMirror 底层的撤销功能
-      easyMDE.codemirror.undo();
-      // 聚焦回编辑器
-      easyMDE.codemirror.focus();
-    }
-  });
-}
-
-// --- 私密笔记核心逻辑 ---
+/**
+ * 私密笔记访问控制
+ * 首次访问：设置密码
+ * 再次访问：输入密码验证
+ * @param {string} targetId - 目标分类ID
+ * @param {string} targetName - 目标分类名称
+ */
 function handlePrivateAccess(targetId, targetName) {
   // 1. 检查 LocalStorage 有无存过密码
   const savedPassword = localStorage.getItem('private_password');
@@ -1268,10 +1228,10 @@ function handlePrivateAccess(targetId, targetName) {
         return;
       }
 
-      // 新增：长度限制
+      // 长度限制
       if (inputVal.length < 4 || inputVal.length > 10) {
         alert("密码长度必须在 4 到 10 之间");
-        // 重新弹窗让用户设置(简单粗暴的重试机制)
+        // 重新弹窗让用户设置
         setTimeout(() => handlePrivateAccess(targetId, targetName), 100);
         return;
       }
@@ -1279,10 +1239,6 @@ function handlePrivateAccess(targetId, targetName) {
       localStorage.setItem('private_password', inputVal);
       alert('密码设置成功, 请牢记!');
       switchCategory(targetId, targetName);
-      /* if (inputVal) {
-        localStorage.setItem('private_password', inputVal);
-        switchCategory(targetId, targetName); // 设置完直接进入
-      } */
     });
 
   } else {
@@ -1297,35 +1253,20 @@ function handlePrivateAccess(targetId, targetName) {
   }
 }
 
-// ===========================================
-// 🎹 体验优化：标题栏按“下箭头/回车”跳到正文
-// ===========================================
-const noteTitleInput = document.getElementById('note-title');
+// ----------------------------------------------------------------------------
+// F2. 右键菜单（文件夹重命名、删除）
+// ----------------------------------------------------------------------------
 
-if (noteTitleInput) {
-  noteTitleInput.addEventListener('keydown', (e) => {
-    // 监听 "ArrowDown"(下箭头) 和 "Enter"(回车)
-    if (e.key === 'ArrowDown' || e.key === 'Enter') {
-      e.preventDefault(); // 阻止默认行为 (比如回车不用真的在标题里换行)
-
-      // 检查编辑器是否存在
-      if (typeof easyMDE !== 'undefined' && easyMDE.codemirror) {
-        easyMDE.codemirror.focus(); // 核心：聚焦到编辑器
-        easyMDE.codemirror.setCursor(0, 0); // (可选) 把光标定在正文开头
-      }
-    }
-  });
-}
-
-// ===========================================
-// 🖱️ 右键菜单逻辑 (重命名 + 删除)
-// ===========================================
 const ctxMenu = document.getElementById('folder-context-menu');
 const ctxRenameBtn = document.getElementById('ctx-rename');
 const ctxDeleteBtn = document.getElementById('ctx-delete');
-let ctxTargetId = null; // 存一下当前右键点的是哪个文件夹
+let ctxTargetId = null; // 存储当前右键点击的文件夹ID
 
-// 1. 显示菜单
+/**
+ * 显示右键菜单
+ * @param {Event} e - 鼠标事件
+ * @param {string} categoryId - 文件夹ID
+ */
 function showContextMenu(e, categoryId) {
   ctxTargetId = categoryId;
 
@@ -1335,12 +1276,16 @@ function showContextMenu(e, categoryId) {
   ctxMenu.style.display = 'block';
 }
 
-// 2. 隐藏菜单 (点击页面任何其他地方)
+/**
+ * 隐藏右键菜单（点击页面其他地方时）
+ */
 document.addEventListener('click', () => {
   if (ctxMenu) ctxMenu.style.display = 'none';
 });
 
-// 3. 绑定功能：重命名
+/**
+ * 绑定功能：重命名文件夹
+ */
 if (ctxRenameBtn) {
   ctxRenameBtn.addEventListener('click', () => {
     if (!ctxTargetId) return;
@@ -1348,7 +1293,7 @@ if (ctxRenameBtn) {
     const category = categories.find(c => c.id === ctxTargetId);
     if (!category) return;
 
-    // 复用你的漂亮弹窗
+    // 复用自定义弹窗
     showModal('重命名文件夹', '请输入新名称', (newName) => {
       if (newName === category.name) return; // 没变就不动
 
@@ -1368,25 +1313,32 @@ if (ctxRenameBtn) {
         modalInput.value = category.name;
         modalInput.select(); // 自动全选文字
       }
-    }, 50); // 稍微延迟一点点等弹窗渲染
+    }, 50);
   });
 }
 
-// 4. 绑定功能：删除
+/**
+ * 绑定功能：删除文件夹
+ */
 if (ctxDeleteBtn) {
   ctxDeleteBtn.addEventListener('click', () => {
     if (!ctxTargetId) return;
 
     const category = categories.find(c => c.id === ctxTargetId);
     if (category) {
-      handleDeleteFolder(category); // 调用你原来的删除函数
+      handleDeleteFolder(category); // 调用模块D中的删除函数
     }
   });
 }
 
-// ===========================================
-// 🧹 强力清空编辑器 (修复删除后残留问题)
-// ===========================================
+// ----------------------------------------------------------------------------
+// F3. 编辑器重置功能
+// ----------------------------------------------------------------------------
+
+/**
+ * 强力清空编辑器（修复删除后残留问题）
+ * 功能：退出预览模式、清空输入框、清空EasyMDE、恢复图标状态
+ */
 function resetEditor() {
   // 1. 退出预览模式
   const container = document.querySelector('.editor-container');
@@ -1396,11 +1348,11 @@ function resetEditor() {
 
   // 2. 清空输入框
   editorTitle.value = '';
-  editorContent.value = '';
+  if (typeof editorContent !== 'undefined' && editorContent) editorContent.value = '';
   editorTitle.disabled = false; // 恢复可编辑
 
   // 3. 清空 EasyMDE (核心)
-  if (easyMDE) {
+  if (typeof easyMDE !== 'undefined' && easyMDE) {
     easyMDE.value("");
     // 修复：有些时候 clear 之后 placeholder 不显示，强制刷新一下
     setTimeout(() => {
@@ -1419,3 +1371,150 @@ function resetEditor() {
   // 5. 状态置空
   currentNoteId = null;
 }
+
+// ----------------------------------------------------------------------------
+// F4. 体验优化
+// ----------------------------------------------------------------------------
+
+// 标题栏按“下箭头/回车”跳到正文
+const noteTitleInput = document.getElementById('note-title');
+
+if (noteTitleInput) {
+  noteTitleInput.addEventListener('keydown', (e) => {
+    // 监听 "ArrowDown"(下箭头) 和 "Enter"(回车)
+    if (e.key === 'ArrowDown' || e.key === 'Enter') {
+      e.preventDefault();
+
+      // 检查编辑器是否存在
+      if (typeof easyMDE !== 'undefined' && easyMDE && easyMDE.codemirror) {
+        easyMDE.codemirror.focus(); // 核心：聚焦到编辑器
+        easyMDE.codemirror.setCursor(0, 0); // 把光标定在正文开头
+      }
+    }
+  });
+}
+
+// ----------------------------------------------------------------------------
+// F5. 主题切换 (深色模式)
+// ----------------------------------------------------------------------------
+
+/**
+ * 初始化主题：从 localStorage 读取用户偏好
+ */
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    updateThemeIcon(true);
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    updateThemeIcon(false);
+  }
+}
+
+/**
+ * 更新主题切换按钮图标
+ * @param {boolean} isDark - 是否为深色模式
+ */
+function updateThemeIcon(isDark) {
+  if (themeToggleBtn) {
+    const icon = themeToggleBtn.querySelector('i');
+    if (icon) {
+      if (isDark) {
+        icon.className = 'fa-solid fa-sun'; // 深色模式显示太阳
+      } else {
+        icon.className = 'fa-solid fa-moon'; // 浅色模式显示月亮
+      }
+    }
+  }
+}
+
+/**
+ * 切换主题（深色模式 <-> 浅色模式）
+ */
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (isDark) {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('theme', 'light');
+    updateThemeIcon(false);
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('theme', 'dark');
+    updateThemeIcon(true);
+  }
+}
+
+// 绑定点击事件
+if (themeToggleBtn) {
+  themeToggleBtn.addEventListener('click', toggleTheme);
+}
+
+// ----------------------------------------------------------------------------
+// F6. 移动端适配逻辑
+// ---------------------------------------------------------------------------- 
+
+// 1. 点击菜单按钮 -> 切换侧边栏
+if (mobileMenuBtn) {
+  mobileMenuBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('open');
+  });
+}
+
+// 2. 点击侧边栏里的任意项 -> 自动收起侧边栏 (已在 switchCategory 处理，此处为兜底)
+sidebar.addEventListener('click', (e) => {
+  if (window.innerWidth <= 768 && e.target.closest('.nav-item')) {
+    sidebar.classList.remove('open');
+  }
+});
+
+// 3. 点击返回按钮 -> 退出编辑模式，回到列表
+if (mobileBackBtn) {
+  mobileBackBtn.addEventListener('click', () => {
+    appContainer.classList.remove('mobile-editing');
+    // 可选：清空选中状态
+    currentNoteId = null;
+    const activeItem = document.querySelector('.note-item.active');
+    if (activeItem) activeItem.classList.remove('active');
+  });
+}
+
+// ============================================================================
+// 🚀 应用初始化 (Application Bootstrap)
+// ============================================================================
+
+// 1. 渲染文件夹和笔记列表
+renderFolderList();
+renderNoteList();
+
+// 2. 初始化主题
+initTheme();
+
+// 3. 为静态导航项添加拖放目标功能（全部、未分类等）
+// 这些项不在 renderFolderList 中生成，所以需要单独绑定
+const staticNavItems = document.querySelectorAll('.nav-item[data-id]');
+staticNavItems.forEach(navItem => {
+  const categoryId = navItem.dataset.id;
+
+  // 跳过不能接收笔记的分类
+  if (['all', 'todo-unfinished', 'todo-finished'].includes(categoryId)) return;
+
+  navItem.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    navItem.classList.add('drag-over');
+  });
+  navItem.addEventListener('dragleave', () => {
+    navItem.classList.remove('drag-over');
+  });
+  navItem.addEventListener('drop', (e) => {
+    e.preventDefault();
+    navItem.classList.remove('drag-over');
+    const rawId = e.dataTransfer.getData('text/plain');
+    const noteId = isNaN(rawId) ? rawId : parseInt(rawId);
+    handleMoveNoteToCategory(noteId, categoryId);
+  });
+});
+
+// ============================================================================
+// 文件结束
+// ============================================================================
