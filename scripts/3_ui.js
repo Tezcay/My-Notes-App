@@ -5,44 +5,110 @@
 /**
  * 渲染左侧文件夹列表
  */
+/**
+ * 渲染左侧文件夹列表 (支持双重拖拽：笔记归档 + 文件夹排序)
+ */
 function renderFolderList() {
-  folderListEl.innerHTML = "";
+  folderListEl.innerHTML = '';
 
-  // 自动修复空数据
-  if (!notes || notes.length === 0) {
-    // 可选：notes = defaultNotes;
-  }
+  // 容错处理
+  if (!categories) categories = [];
 
-  categories.forEach((category) => {
-    const li = document.createElement("li");
-    li.className = "nav-item sub-item";
+  categories.forEach((category, index) => {
+    const li = document.createElement('li');
+    li.className = 'nav-item sub-item';
     li.dataset.id = category.id;
+    li.dataset.index = index; // 记录索引，方便排序
 
-    if (currentCategoryId === category.id) li.classList.add("active");
+    // 1. 设置为可拖拽
+    li.draggable = true;
 
+    // 选中状态
+    if (currentCategoryId === category.id) li.classList.add('active');
+
+    // 内容渲染
     li.innerHTML = `<span class="icon"><i class="fa-regular fa-folder"></i></span><span class="text">${category.name}</span>`;
 
-    li.addEventListener("contextmenu", (e) => {
+    // 2. 绑定右键菜单
+    li.addEventListener('contextmenu', (e) => {
       e.preventDefault();
+      // 必须恢复 pointer-events 才能点击，或者直接在这里处理
       showContextMenu(e, category.id);
     });
 
-    li.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      li.classList.add("drag-over");
+    // ========================================================
+    // 🖱️ 核心拖拽逻辑 (Drag & Drop)
+    // ========================================================
+
+    // A. 开始拖拽 (Drag Start)
+    li.addEventListener('dragstart', (e) => {
+      // 标记当前正在拖拽的是“文件夹”
+      e.dataTransfer.setData('application/x-type', 'folder');
+      e.dataTransfer.setData('folder-index', index); // 传索引比传ID方便排序
+      
+      // 视觉效果
+      li.classList.add('dragging');
+      e.stopPropagation(); // 防止冒泡
     });
-    li.addEventListener("dragleave", () => {
-      li.classList.remove("drag-over");
+
+    // B. 拖拽结束 (Drag End)
+    li.addEventListener('dragend', () => {
+      li.classList.remove('dragging');
+      // 清理所有的高亮样式
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('drag-over'));
     });
-    li.addEventListener("drop", (e) => {
+
+    // C. 拖拽经过 (Drag Over)
+    li.addEventListener('dragover', (e) => {
+      e.preventDefault(); // 必须阻止默认行为才能触发 drop
+      
+      // 获取当前拖拽的类型
+      // 注意：dragover 中不能直接读取 getData 的值，但可以读取 types
+      // 这里简单处理：只要是拖拽，就高亮
+      li.classList.add('drag-over');
+    });
+
+    // D. 拖拽离开 (Drag Leave)
+    li.addEventListener('dragleave', () => {
+      li.classList.remove('drag-over');
+    });
+
+    // E. 放下 (Drop) - 核心判断逻辑！
+    li.addEventListener('drop', (e) => {
       e.preventDefault();
-      li.classList.remove("drag-over");
-      const noteId = e.dataTransfer.getData("text/plain");
-      handleMoveNoteToCategory(noteId, category.id);
+      li.classList.remove('drag-over');
+
+      // --- 判断 1：是“文件夹排序”吗？ ---
+      const dragType = e.dataTransfer.getData('application/x-type');
+      if (dragType === 'folder') {
+        const fromIndex = parseInt(e.dataTransfer.getData('folder-index'));
+        const toIndex = index; // 当前这个 li 的索引
+
+        if (fromIndex !== toIndex && !isNaN(fromIndex)) {
+          // 数组移动元素：先切掉，再插入
+          const [movedItem] = categories.splice(fromIndex, 1); // 拿出
+          categories.splice(toIndex, 0, movedItem); // 插进去
+          
+          // 保存并重新渲染
+          saveAllToLocalStorage();
+          renderFolderList();
+          console.log(`📂 文件夹排序：从 ${fromIndex} 移到 ${toIndex}`);
+        }
+        return; // 结束，不执行下面的笔记逻辑
+      }
+
+      // --- 判断 2：是“移动笔记”吗？ ---
+      // 这里的 'text/plain' 是我们在 renderNoteList 里设置的 noteId
+      const noteId = e.dataTransfer.getData('text/plain');
+      if (noteId) {
+        handleMoveNoteToCategory(noteId, category.id);
+        console.log(`📝 笔记移动：笔记 ${noteId} -> 文件夹 ${category.name}`);
+      }
     });
 
     folderListEl.appendChild(li);
   });
+  
   updateStaticNavHighlight();
 }
 
@@ -114,6 +180,16 @@ function renderNoteList() {
     const li = document.createElement("li");
     li.dataset.id = note.id;
     li.className = "note-item";
+
+    li.draggable = true; 
+    li.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', note.id.toString()); // 传递笔记ID
+      li.classList.add('dragging');
+    });
+    li.addEventListener('dragend', () => { 
+      li.classList.remove('dragging'); 
+    });
+
     if (note.id === currentNoteId) li.classList.add("active");
     li.draggable = true;
 

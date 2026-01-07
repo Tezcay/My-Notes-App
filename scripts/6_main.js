@@ -13,7 +13,7 @@ function switchCategory(id, name) {
   if (window.innerWidth <= 768) sidebar.classList.remove("open");
 }
 
-// 侧边栏点击
+// 1. 侧边栏点击
 sidebar.addEventListener("click", (e) => {
   const navItem = e.target.closest(".nav-item");
   if (navItem) {
@@ -27,7 +27,7 @@ sidebar.addEventListener("click", (e) => {
   }
 });
 
-// 新增文件夹
+// 2. 新增文件夹
 if (addFolderBtn) {
   addFolderBtn.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -40,7 +40,7 @@ if (addFolderBtn) {
   });
 }
 
-// 新增笔记
+// 3. 新增笔记
 if (addNoteBtn) {
   addNoteBtn.addEventListener('click', () => {
     const newId = String(Date.now());
@@ -85,7 +85,7 @@ if (addNoteBtn) {
   });
 }
 
-// 标题实时保存
+// 4. 标题实时保存
 if (editorTitle) {
   editorTitle.addEventListener("input", (e) => {
     if (currentNoteId) {
@@ -103,7 +103,7 @@ if (editorTitle) {
   });
 }
 
-// 删除笔记
+// 5. 删除笔记
 if (deleteBtn) {
   deleteBtn.addEventListener("click", () => {
     if (!currentNoteId) {
@@ -132,7 +132,7 @@ if (deleteBtn) {
   });
 }
 
-// 删除文件夹逻辑
+// 6. 删除文件夹逻辑
 function handleDeleteFolder(category) {
   showConfirm(
     "删除文件夹",
@@ -153,18 +153,26 @@ function handleDeleteFolder(category) {
   );
 }
 
-// 拖拽逻辑 (笔记移动)
+// 7. 拖拽逻辑 (笔记移动)
 function handleMoveNoteToCategory(noteId, categoryId) {
   const note = notes.find((n) => n.id == noteId);
   if (!note || note.categoryId === categoryId) return;
 
+  // 封装移动操作，只有验证通过才执行
   const performMove = () => {
     note.categoryId = categoryId;
     note.updateTime = Date.now();
     saveAllToLocalStorage();
     renderNoteList();
+
+    // 如果是从其他分类移入私密笔记，最好刷新一下列表让它“消失”
+    // (因为当前还停留在普通列表视图)
+    if (categoryId === 'private') {
+        alert('✅ 笔记已加密归档');
+    }
   };
 
+  // 安全检查1. 如果是移入回收站
   if (categoryId === "trash") {
     showConfirm(
       "移入回收站",
@@ -175,6 +183,37 @@ function handleMoveNoteToCategory(noteId, categoryId) {
     );
     return;
   }
+
+  // 安全检查2. 如果是移入私密笔记
+  if (categoryId === 'private') {
+    const savedPassword = localStorage.getItem('private_password');
+
+    if (!savedPassword) {
+      // 情况a：还没设置过密码 -> 引导设置
+      showModal('启用私密空间', '首次使用请设置访问密码(4-10位)', (inputVal) => {
+        if (!inputVal) return;
+        if (inputVal.length < 4 || inputVal.length > 10) {
+          alert("密码长度必须在 4 到 10 之间");
+          return;
+        }
+        localStorage.setItem('private_password', inputVal);
+        alert("密码设置成功!请牢记");
+        performMove(); // 设置成功，执行移动
+      });
+    } else {
+      // 情况b：已有密码 -> 验证身份
+      showModal('身份验证', '移入私密空间需验证密码', (inputVal) => {
+        if (inputVal === savedPassword) {
+          performMove();
+        } else {
+          alert("密码错误");
+        }
+      });
+    }
+    return; // 拦截，等待弹窗回调
+  }
+
+  // 普通移动
   performMove();
 }
 
