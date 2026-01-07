@@ -170,39 +170,85 @@ if (mobileBackBtn)
 // 7. 数据备份与恢复（导入/导出）
 // a. 导出(Export)
 const exportBtn = document.getElementById("export-btn");
+
 if (exportBtn) {
-  exportBtn.addEventListener("click", () => {
+  // 异步操作：文件保存可以另存为
+  exportBtn.addEventListener("click", async (e) => {  // e 防止事件冒泡
+    // 防止点击按钮时触发侧边栏的“切换分类”逻辑，避免界面闪烁
+    e.stopPropagation();
+
     // 准备要导出的数据对象
     const data = {
       notes: notes, // 来自 1_data.js 的全局变量
       categories: categories,
-      version: "2.0", // 版本号，方便以后做兼容
+      version: "1.0", // 版本号，方便以后做兼容
       exportTime: new Date().toLocaleString(),
     };
 
-    // 创建 Blob 对象 (JSON格式)
-    const dataStr = JSON.stringify(data, null, 2); // null, 2 让文件带缩进，可读性更强
-    const blob = new Blob([dataStr], { type: "application/json" });
+    try {
+      // 准备数据字符串和文件名
+      const dataStr = JSON.stringify(data, null, 2); // null, 2 让文件带缩进
+      // 生成文件名（两种方式都需要用）
+      const fileName = `My_Notes_Backup_${Date.now()}.json`;
 
-    // 创建临时下载链接
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    // 文件名带上时间戳，防止重名
-    a.download = `My_Notes_Backup_${Date.now()}.json`;
+      // 尝试使用“另存为”窗口(Modern API)
+      if (window.showSaveFilePicker) {
+        // 现代浏览器逻辑
+        const handle = await window.showSaveFilePicker({
+          suggestedName: fileName, // 传入文件名字符串, 不是blob对象
+          types: [
+            // 复数
+            {
+              description: "JSON备份文件",
+              accept: { "application/json": [".json"] },
+            },
+          ],
+        });
 
-    // 触发下载
-    document.body.appendChild(a);
-    a.click();
+        // 用户选好路径后创建一个可写流
+        const writable = await handle.createWritable();
+        // 写入数据并关闭流
+        await writable.write(dataStr);
+        await writable.close();
 
-    // 清理垃圾
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+        // 用 alert 体验更好
+        alert("✅ 导出成功！已保存至指定位置。");
+      } else {
+        // 兼容旧版浏览器逻辑
+        // 如果不支持，执行原来的下载逻辑
+        throw new error("UseFallback"); // 抛出错误跳到 catch 里执行降级方案
+      }
+    } catch (err) {
+      // 异常处理
+      // 如果用户点击取消，触发 AbortError, 不需要处理
+      if (err.name === "AbortError") return;
 
-    // 简单的成功提示(用 console.log 代替)
-    // alert('数据导出成功');
-    console.log("数据导出成功(JSON格式)");
+      // 如果是不支持 API 或其他错误，执行传统的下载方法
+      console.log("正在使用兼容模式下载...");
+      fallbackDownload(data);
+    }
   });
+}
+
+// 传统的 Blob 下载方式（兼容模式）
+function fallbackDownload(data) {
+  const dataStr = JSON.stringify(data, null, 2);
+  const blob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  // 使用统一的文件名
+  a.download = `My_Notes_Backup_${Date.now()}.json`;
+
+  document.body.appendChild(a);
+  a.click();
+
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  // alert 体验更好
+  alert("✅ 导出成功！(已下载到默认文件夹)");
 }
 
 // b. 导入(Import)
@@ -211,7 +257,10 @@ const importInput = document.getElementById("import-input");
 
 if (importBtn && importInput) {
   // 点击图标->触发隐藏的 input 文件选择框
-  importBtn.addEventListener("click", () => {
+  importBtn.addEventListener("click", (e) => {
+    // 阻止冒泡
+    e.stopPropagation();
+
     // 技巧：每次点击前清空 value，确保用户选了同一个文件也出发 change 事件
     importInput.value = "";
     importInput.click();
@@ -225,13 +274,13 @@ if (importBtn && importInput) {
     // 防御性确定：导入会覆盖现有数据
     showConfirm(
       "恢复数据警告",
-      "警告：恢复数据将【覆盖】当前所有笔记!\n建议先带年纪下载按钮备份当前数据。\n\n确定要继续吗？",
+      "⚠️ 警告：恢复数据将【覆盖】当前所有笔记！\n建议先点击左侧下载按钮备份当前数据。\n\n确定要继续吗？'",
       () => {
         // 只有用户点击确定后，才执行这里的代码
         const reader = new FileReader();
         reader.onload = (event) => {
           try {
-            const data = JSON.parse(event, target.result);
+            const data = JSON.parse(event.target.result);
 
             // 数据校验
             if (Array.isArray(data.notes) && Array.isArray(data.categories)) {
@@ -247,14 +296,14 @@ if (importBtn && importInput) {
               // 清空编辑器状态
               if (typeof resetEditor === "function") resetEditor();
 
-              // 成功提示(也可用 alert)
-              showConfirm("恢复成功", "🎉 数据已成功恢复！", () => {}); // 借用确认框当提示框用
+              // 成功提示: alert
+              alert("🎉 数据已成功恢复！");
             } else {
-              alert("文件格式错误!");
+              alert("❌ 文件格式错误：找不到笔记数据");
             }
           } catch (err) {
             console.error(err);
-            alert("读取失败：文件可能已损坏");
+            alert("❌ 读取失败：文件可能已损坏或格式不正确");
           }
         };
         // 开始读取文件
