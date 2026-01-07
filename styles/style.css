@@ -54,7 +54,7 @@
 
   --accent-color: #1976d2;
   --accent-yellow: #f5a623;
-  --accent-green: #10B981;
+  --accent-green: #10b981;
   --accent-red: #ef4444;
 
   --shadow-color: rgba(0, 0, 0, 0.1);
@@ -89,7 +89,8 @@
 
 /* --- 全局重置 --- */
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   background-color: var(--bg-primary);
   height: 100vh;
   margin: 0;
@@ -757,7 +758,8 @@ li {
   height: auto !important;
   min-height: 100% !important;
   color: var(--text-primary) !important;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif !important;
   font-size: 16px !important;
   line-height: 1.8 !important;
 }
@@ -779,24 +781,56 @@ li {
   background: var(--bg-active) !important;
 }
 
-/* CodeMirror 语法高亮适配主题 */
-.cm-header { color: var(--text-primary) !important; font-weight: bold !important; }
-.cm-strong { font-weight: bold !important; color: var(--text-primary) !important; }
-.cm-em { font-style: italic !important; color: var(--text-primary) !important; }
-.cm-link { color: var(--accent-color) !important; }
-.cm-url { color: var(--accent-green) !important; }
-.cm-quote { color: var(--text-tertiary) !important; font-style: italic !important; }
+/* ===========================================
+   ✨ 修复版：Markdown 语法符号深度淡化
+   =========================================== */
 
-/* 深色模式下的特殊适配 */
-[data-theme="dark"] .CodeMirror-gutters {
-  background-color: transparent !important;
-  border-right: none !important;
-}
-[data-theme="dark"] .CodeMirror-linenumber {
-  color: var(--text-muted) !important;
+/* 1. 正文内容：深色、加粗 (排除掉语法符号！) */
+.cm-strong:not(.cm-formatting) {
+  color: var(--text-primary) !important;
+  font-weight: bold !important;
 }
 
-/* 🚑 关键修复：防止 Base64 图片代码撑爆页面 */
+.cm-em:not(.cm-formatting) {
+  color: var(--text-primary) !important;
+  font-style: italic !important;
+}
+
+/* 2. 语法符号 (星星、井号等)：强制浅灰色 */
+.cm-formatting,
+.cm-formatting-strong,
+.cm-formatting-em,
+.cm-formatting-header,
+.cm-formatting-list {
+  color: #e0e0e0 !important; /* 极浅的灰色 */
+  font-weight: normal !important; /* 强制不加粗 */
+  font-style: normal !important; /* 强制不斜体 */
+}
+
+/* 3. 其他高亮保持不变 */
+.cm-header {
+  color: var(--text-primary) !important;
+  font-weight: bold !important;
+}
+.cm-link {
+  color: var(--accent-color) !important;
+}
+.cm-url {
+  color: var(--accent-green) !important;
+}
+.cm-quote {
+  color: #999 !important;
+  font-style: italic !important;
+}
+
+/* 4. 深色模式适配 (星星稍微亮一点，不然在黑背景下看不见) */
+[data-theme="dark"] .cm-formatting,
+[data-theme="dark"] .cm-formatting-strong,
+[data-theme="dark"] .cm-formatting-em {
+  color: #444 !important;
+}
+
+/* 关键修复：防止 Base64 图片代码撑爆页面 */
 .CodeMirror-wrap pre {
   word-break: break-all !important;
   white-space: pre-wrap !important;
@@ -849,9 +883,16 @@ li {
   padding-bottom: 6px;
 }
 
-#note-preview-area p { margin: 12px 0; }
-#note-preview-area a { color: var(--accent-color); text-decoration: none; }
-#note-preview-area a:hover { text-decoration: underline; }
+#note-preview-area p {
+  margin: 12px 0;
+}
+#note-preview-area a {
+  color: var(--accent-color);
+  text-decoration: none;
+}
+#note-preview-area a:hover {
+  text-decoration: underline;
+}
 
 #note-preview-area blockquote {
   border-left: 4px solid var(--accent-yellow);
@@ -869,7 +910,7 @@ li {
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 14px;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 #note-preview-area pre {
@@ -879,7 +920,10 @@ li {
   overflow-x: auto;
   margin: 16px 0;
 }
-#note-preview-area pre code { background: none; padding: 0; }
+#note-preview-area pre code {
+  background: none;
+  padding: 0;
+}
 
 #note-preview-area img {
   max-width: 100%;
@@ -887,7 +931,7 @@ li {
   border-radius: 8px;
   margin: 16px 0;
   display: block;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 #note-preview-area table {
@@ -895,12 +939,16 @@ li {
   width: 100%;
   margin: 16px 0;
 }
-#note-preview-area th, #note-preview-area td {
+#note-preview-area th,
+#note-preview-area td {
   border: 1px solid var(--border-color);
   padding: 8px 12px;
   text-align: left;
 }
-#note-preview-area th { background: var(--bg-secondary); font-weight: 600; }
+#note-preview-area th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+}
 
 /* ============================================================================
    5. 响应式与动画 📱 (Responsive & Animations)
@@ -936,8 +984,10 @@ li {
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  
-  .sidebar.open { left: 0; }
+
+  .sidebar.open {
+    left: 0;
+  }
 
   /* 3. 列表页：默认占满全屏 */
   .list-view {
@@ -966,36 +1016,34 @@ li {
   .editor-container {
     padding: 20px;
   }
-  
+
   #note-title {
     font-size: 24px;
   }
 }
 
-
 /* --- 待办事项 (Todo) 样式 --- */
 .note-item {
-    /* 确保复选框和内容横向排列 */
-    display: flex; 
-    align-items: center; 
-    gap: 10px; /* 间距 */
+  /* 确保复选框和内容横向排列 */
+  display: flex;
+  align-items: center;
+  gap: 10px; /* 间距 */
 }
 
 .todo-check-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-left: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 5px;
 }
 
 .todo-checkbox {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    /* 让复选框变成你的主题色 */
-    accent-color: var(--primary-color, #007bff); 
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  /* 让复选框变成你的主题色 */
+  accent-color: var(--primary-color, #007bff);
 }
-
 
 /* ===========================================
    🖱️ 拖拽交互样式 (Drag & Drop)
