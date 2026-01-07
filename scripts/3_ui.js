@@ -6,33 +6,38 @@
  * 渲染左侧文件夹列表
  */
 function renderFolderList() {
-  folderListEl.innerHTML = '';
+  folderListEl.innerHTML = "";
 
   // 自动修复空数据
   if (!notes || notes.length === 0) {
-    // 可选：notes = defaultNotes; 
+    // 可选：notes = defaultNotes;
   }
 
-  categories.forEach(category => {
-    const li = document.createElement('li');
-    li.className = 'nav-item sub-item';
+  categories.forEach((category) => {
+    const li = document.createElement("li");
+    li.className = "nav-item sub-item";
     li.dataset.id = category.id;
 
-    if (currentCategoryId === category.id) li.classList.add('active');
+    if (currentCategoryId === category.id) li.classList.add("active");
 
     li.innerHTML = `<span class="icon"><i class="fa-regular fa-folder"></i></span><span class="text">${category.name}</span>`;
 
-    li.addEventListener('contextmenu', (e) => {
+    li.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       showContextMenu(e, category.id);
     });
 
-    li.addEventListener('dragover', (e) => { e.preventDefault(); li.classList.add('drag-over'); });
-    li.addEventListener('dragleave', () => { li.classList.remove('drag-over'); });
-    li.addEventListener('drop', (e) => {
+    li.addEventListener("dragover", (e) => {
       e.preventDefault();
-      li.classList.remove('drag-over');
-      const noteId = e.dataTransfer.getData('text/plain');
+      li.classList.add("drag-over");
+    });
+    li.addEventListener("dragleave", () => {
+      li.classList.remove("drag-over");
+    });
+    li.addEventListener("drop", (e) => {
+      e.preventDefault();
+      li.classList.remove("drag-over");
+      const noteId = e.dataTransfer.getData("text/plain");
       handleMoveNoteToCategory(noteId, category.id);
     });
 
@@ -42,13 +47,16 @@ function renderFolderList() {
 }
 
 function updateStaticNavHighlight() {
-  const allNavItems = document.querySelectorAll('.nav-item');
-  allNavItems.forEach(item => {
+  const allNavItems = document.querySelectorAll(".nav-item");
+  allNavItems.forEach((item) => {
     if (item.dataset.id && currentCategoryId === item.dataset.id) {
-      item.classList.add('active');
+      item.classList.add("active");
     } else {
-      if (item.classList.contains('active') && item.dataset.id !== currentCategoryId) {
-        item.classList.remove('active');
+      if (
+        item.classList.contains("active") &&
+        item.dataset.id !== currentCategoryId
+      ) {
+        item.classList.remove("active");
       }
     }
   });
@@ -58,64 +66,87 @@ function updateStaticNavHighlight() {
  * 渲染笔记列表
  */
 function renderNoteList() {
-  const filteredNotes = notes.filter(note => {
+  const filteredNotes = notes.filter((note) => {
     const contentToSearch = (note.title + note.content).toLowerCase();
     const keyword = currentSearchKeyword.toLowerCase();
     if (!contentToSearch.includes(keyword)) return false;
 
     if (currentCategoryId === "trash") return note.categoryId === "trash";
     if (note.categoryId === "trash") return false;
-    if (currentCategoryId === "all") return note.categoryId !== 'private';
+    if (currentCategoryId === "all") return note.categoryId !== "private";
     return note.categoryId === currentCategoryId;
   });
 
   filteredNotes.sort((a, b) => {
     switch (currentSortMode) {
-      case 'timeDesc': return new Date(b.updateTime) - new Date(a.updateTime);
-      case 'timeAsc': return new Date(a.updateTime) - new Date(b.updateTime);
-      case 'titleAsc': return (a.title || '').localeCompare(b.title || '', 'zh-CN');
-      default: return 0;
+      case "timeDesc":
+        return new Date(b.updateTime) - new Date(a.updateTime);
+      case "timeAsc":
+        return new Date(a.updateTime) - new Date(b.updateTime);
+      case "titleAsc":
+        return (a.title || "").localeCompare(b.title || "", "zh-CN");
+      default:
+        return 0;
     }
   });
 
-  if (noteCountEl) noteCountEl.textContent = `共 ${filteredNotes.length} 条笔记`;
-  noteListEl.innerHTML = '';
+  if (noteCountEl)
+    noteCountEl.textContent = `共 ${filteredNotes.length} 条笔记`;
+  noteListEl.innerHTML = "";
 
   if (filteredNotes.length === 0) {
     if (currentSearchKeyword) {
-      noteListEl.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">未搜索到相关笔记</div>';
+      noteListEl.innerHTML =
+        '<div style="text-align:center; color:#999; padding:20px;">未搜索到相关笔记</div>';
     } else {
-      const emptyIcon = currentCategoryId === 'trash' ? 'fa-trash-can' : 'fa-box-open';
-      const emptyText = currentCategoryId === 'trash' ? '回收站里没有笔记' : '这里空空如也，快去记点什么吧';
+      const emptyIcon =
+        currentCategoryId === "trash" ? "fa-trash-can" : "fa-box-open";
+      const emptyText =
+        currentCategoryId === "trash"
+          ? "回收站里没有笔记"
+          : "这里空空如也，快去记点什么吧";
       noteListEl.innerHTML = `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #ccc; padding-top: 60px;"><i class="fa-solid ${emptyIcon}" style="font-size: 64px; margin-bottom: 20px; opacity: 0.5;"></i><div style="font-size: 14px;">${emptyText}</div></div>`;
     }
     return;
   }
 
-  filteredNotes.forEach(note => {
-    const li = document.createElement('li');
+  filteredNotes.forEach((note) => {
+    const li = document.createElement("li");
     li.dataset.id = note.id;
-    li.className = 'note-item';
-    if (note.id === currentNoteId) li.classList.add('active');
+    li.className = "note-item";
+    if (note.id === currentNoteId) li.classList.add("active");
     li.draggable = true;
 
-    li.addEventListener('dragstart', (e) => {
-      e.dataTransfer.setData('text/plain', note.id.toString());
-      li.classList.add('dragging');
+    li.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/plain", note.id.toString());
+      li.classList.add("dragging");
     });
-    li.addEventListener('dragend', () => { li.classList.remove('dragging'); });
+    li.addEventListener("dragend", () => {
+      li.classList.remove("dragging");
+    });
 
-    const displayTitle = highlightText(note.title || '无标题', currentSearchKeyword);
-    const plainContent = (note.content || '').replace(/[#*`]/g, '').replace(/\n/g, ' ').substring(0, 50);
-    const displayContent = highlightText(plainContent || '无内容', currentSearchKeyword);
+    const displayTitle = highlightText(
+      note.title || "无标题",
+      currentSearchKeyword
+    );
+    const plainContent = (note.content || "")
+      .replace(/[#*`]/g, "")
+      .replace(/\n/g, " ")
+      .substring(0, 50);
+    const displayContent = highlightText(
+      plainContent || "无内容",
+      currentSearchKeyword
+    );
 
-    li.innerHTML = `<div class="note-title">${displayTitle}</div><div class="note-preview">${displayContent}</div><div class="note-date">${formatTime(note.updateTime)}</div>`;
+    li.innerHTML = `<div class="note-title">${displayTitle}</div><div class="note-preview">${displayContent}</div><div class="note-date">${formatTime(
+      note.updateTime
+    )}</div>`;
 
-    li.addEventListener('click', () => {
+    li.addEventListener("click", () => {
       currentNoteId = note.id;
       renderNoteList();
       loadNoteToEditor(note);
-      if (appContainer) appContainer.classList.add('mobile-editing');
+      if (appContainer) appContainer.classList.add("mobile-editing");
     });
 
     noteListEl.appendChild(li);
@@ -127,39 +158,42 @@ function loadNoteToEditor(note) {
   currentNoteId = note.id;
   editorTitle.value = note.title;
 
-  if (typeof easyMDE !== 'undefined' && easyMDE) {
+  if (typeof easyMDE !== "undefined" && easyMDE) {
     easyMDE.value(note.content || "");
-    setTimeout(() => { isLoadingNote = false; }, 200);
+    setTimeout(() => {
+      isLoadingNote = false;
+    }, 200);
   } else {
     editorContent.value = note.content || "";
     isLoadingNote = false;
   }
 
-  const container = document.querySelector('.editor-container');
-  if (container) container.classList.remove('preview-mode');
+  const container = document.querySelector(".editor-container");
+  if (container) container.classList.remove("preview-mode");
   editorTitle.disabled = false;
 }
 
 // 弹窗逻辑
-const modalOverlay = document.getElementById('custom-modal');
-const modalTitle = document.getElementById('modal-title');
-const modalDesc = document.getElementById('modal-desc');
-const modalInput = document.getElementById('modal-input');
-const modalConfirmBtn = document.getElementById('modal-confirm');
-const modalCancelBtn = document.getElementById('modal-cancel');
+const modalOverlay = document.getElementById("custom-modal");
+const modalTitle = document.getElementById("modal-title");
+const modalDesc = document.getElementById("modal-desc");
+const modalInput = document.getElementById("modal-input");
+const modalConfirmBtn = document.getElementById("modal-confirm");
+const modalCancelBtn = document.getElementById("modal-cancel");
 let onModalConfirm = null;
 let isInputMode = true;
 
 function showModal(title, placeholder, callback) {
   isInputMode = true;
   modalTitle.textContent = title;
-  modalInput.style.display = 'block';
-  modalDesc.style.display = 'none';
+  modalInput.style.display = "block";
+  modalDesc.style.display = "none";
   modalInput.placeholder = placeholder;
-  modalInput.value = '';
-  if (title.includes('密码') || title.includes('锁定')) modalInput.type = 'password';
-  else modalInput.type = 'text';
-  modalOverlay.style.display = 'flex';
+  modalInput.value = "";
+  if (title.includes("密码") || title.includes("锁定"))
+    modalInput.type = "password";
+  else modalInput.type = "text";
+  modalOverlay.style.display = "flex";
   setTimeout(() => modalInput.focus(), 50);
   onModalConfirm = callback;
 }
@@ -167,15 +201,15 @@ function showModal(title, placeholder, callback) {
 function showConfirm(title, message, callback) {
   isInputMode = false;
   modalTitle.textContent = title;
-  modalInput.style.display = 'none';
-  modalDesc.style.display = 'block';
+  modalInput.style.display = "none";
+  modalDesc.style.display = "block";
   modalDesc.textContent = message;
-  modalOverlay.style.display = 'flex';
+  modalOverlay.style.display = "flex";
   onModalConfirm = callback;
 }
 
 function hideModal() {
-  modalOverlay.style.display = 'none';
+  modalOverlay.style.display = "none";
   onModalConfirm = null;
 }
 
@@ -195,7 +229,7 @@ if (modalConfirmBtn) {
   };
 }
 if (modalInput) {
-  modalInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') modalConfirmBtn.click();
+  modalInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") modalConfirmBtn.click();
   });
 }

@@ -7,6 +7,42 @@
 // ============================================
 
 // ============================================
+// 备份：旧的index.html工具栏按钮->改为使用外部MDE
+// ============================================
+
+/*
+<!-- <div class="tool-left">
+          <button class="tool-btn mobile-only" id="mobile-back-btn" style="margin-right: 10px;"><i
+              class="fa-solid fa-arrow-left"></i></button>
+
+          <button class="tool-btn"><i class="fa-regular fa-image"></i></button>
+          <button class="tool-btn"><i class="fa-regular fa-square-check"></i></button>
+
+          <span class="divider">|</span>
+
+          <button class="tool-btn text-icon">H<sub>1</sub></button>
+          <button class="tool-btn text-icon">H<sub>2</sub></button>
+          <button class="tool-btn text-icon">H<sub>3</sub></button>
+
+          <button class="tool-btn"><i class="fa-solid fa-bold"></i></button>
+          <button class="tool-btn"><i class="fa-solid fa-italic"></i></button>
+          <button class="tool-btn"><i class="fa-solid fa-underline"></i></button>
+          <button class="tool-btn"><i class="fa-solid fa-strikethrough"></i></button>
+
+          <span class="divider">|</span>
+
+          <button class="tool-btn"><i class="fa-solid fa-list-ul"></i></button>
+          <button class="tool-btn"><i class="fa-solid fa-list-ol"></i></button>
+          <button class="tool-btn"><i class="fa-solid fa-quote-right"></i></button>
+
+          <span class="divider">|</span>
+
+          <button class="tool-btn"><i class="fa-solid fa-align-left"></i></button>
+          <button class="tool-btn" style="color: #f5a623;"><i class="fa-solid fa-font"></i></button>
+        </div> -->
+*/
+
+// ============================================
 // 备份1：旧的模拟数据（第1-29行）
 // ============================================
 /*

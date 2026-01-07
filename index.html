@@ -1,188 +1,200 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My-Notes-App</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="icon" type="image/svg+xml" href="assets/images/book.svg">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+    <link rel="stylesheet" href="styles/style.css" />
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My-Notes-App</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
-  <link rel="stylesheet" href="styles/style.css">
-</head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="sidebar-group">
+          <div class="group-title">笔记</div>
 
-<body>
-  <div class="app">
-    <aside class="sidebar">
+          <ul class="nav-list">
+            <li class="nav-item active" data-id="all">
+              <span class="icon"><i class="fa-solid fa-file-lines"></i></span>
+              <span class="text">全部笔记</span>
+            </li>
 
-      <div class="sidebar-group">
-        <div class="group-title">笔记</div>
+            <li class="nav-item" data-id="uncategorized">
+              <span class="icon"><i class="fa-regular fa-clone"></i></span>
+              <span class="text">未分类</span>
+            </li>
 
-        <ul class="nav-list">
-          <li class="nav-item active" data-id="all">
-            <span class="icon"><i class="fa-solid fa-file-lines"></i></span>
-            <span class="text">全部笔记</span>
-          </li>
+            <li class="folder-container">
+              <div class="folder-header">
+                <div class="left-col">
+                  <span class="arrow" id="folder-toggle-btn"
+                    ><i class="fa-solid fa-caret-down"></i
+                  ></span>
+                  <span class="icon"><i class="fa-regular fa-folder"></i></span>
+                  <span class="text">我的文件夹</span>
+                </div>
 
-          <li class="nav-item" data-id="uncategorized">
-            <span class="icon"><i class="fa-regular fa-clone"></i></span>
-            <span class="text">未分类</span>
-          </li>
-
-          <li class="folder-container">
-            <div class="folder-header">
-              <div class="left-col">
-                <span class="arrow" id="folder-toggle-btn"><i class="fa-solid fa-caret-down"></i></span>
-                <span class="icon"><i class="fa-regular fa-folder"></i></span>
-                <span class="text">我的文件夹</span>
+                <button class="add-btn" id="add-folder-btn" title="新建文件夹">
+                  <i class="fa-solid fa-plus"></i>
+                </button>
               </div>
 
-              <button class="add-btn" id="add-folder-btn" title="新建文件夹"><i class="fa-solid fa-plus"></i></button>
-            </div>
+              <ul class="sub-list" id="folder-list"></ul>
+            </li>
 
-            <ul class="sub-list" id="folder-list">
-            </ul>
-          </li>
+            <li class="nav-item" data-id="private">
+              <span class="icon"><i class="fa-solid fa-lock"></i></span>
+              <span class="text">私密笔记</span>
+            </li>
 
-          <li class="nav-item" data-id="private">
-            <span class="icon"><i class="fa-solid fa-lock"></i></span>
-            <span class="text">私密笔记</span>
-          </li>
+            <li class="nav-item" data-id="trash">
+              <span class="icon"><i class="fa-solid fa-trash-can"></i></span>
+              <span class="text">最近删除</span>
+            </li>
+          </ul>
+        </div>
 
-          <li class="nav-item" data-id="trash">
-            <span class="icon"><i class="fa-solid fa-trash-can"></i></span>
-            <span class="text">最近删除</span>
-          </li>
+        <div class="sidebar-group mt-20">
+          <div class="group-title">待办</div>
+
+          <ul class="nav-list">
+            <li class="nav-item" data-id="todo-unfinished">
+              <span class="icon"
+                ><i class="fa-regular fa-square-check"></i
+              ></span>
+              <span class="text">未完成</span>
+            </li>
+
+            <li class="nav-item" data-id="todo-finished">
+              <span class="icon"><i class="fa-solid fa-square-xmark"></i></span>
+              <span class="text">已完成</span>
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <section class="list-view">
+        <div class="list-header-top">
+          <h2>全部笔记</h2>
+        </div>
+
+        <div class="search-action-area">
+          <button id="mobile-menu-btn" class="mobile-only">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" placeholder="搜索全部笔记" />
+          </div>
+          <button class="add-circle-btn" title="新建笔记">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+
+        <div class="list-stats-bar">
+          <span class="count-text">共 62 条笔记</span>
+          <div class="sort-action">
+            按编辑时间 <i class="fa-solid fa-caret-down"></i>
+          </div>
+        </div>
+
+        <ul class="note-list">
+          <!-- 笔记项模板 -->
         </ul>
-      </div>
+      </section>
 
-      <div class="sidebar-group mt-20">
-        <div class="group-title">待办</div>
+      <main class="editor-view">
+        <div class="toolbar">
+          <div class="tool-right">
+            <!-- <button class="tool-btn" id="preview-btn" title="预览模式"><i class="fa-solid fa-eye"></i></button> -->
+            <button class="tool-btn" id="import-btn" title="导入数据(导入JSON)">
+              <i class="fa-solid fa-download"></i>
+            </button>
+            <button class="tool-btn" id="export-btn" title="导出数据(导出JSON)">
+              <i class="fa-solid fa-upload"></i>
+            </button>
+            <input
+              type="file"
+              id="import-input"
+              accept=".json"
+              style="display: none"
+            />
 
-        <ul class="nav-list">
-          <li class="nav-item" data-id="todo-unfinished">
-            <span class="icon"><i class="fa-regular fa-square-check"></i></span>
-            <span class="text">未完成</span>
-          </li>
-
-          <li class="nav-item" data-id="todo-finished">
-            <span class="icon"><i class="fa-solid fa-square-xmark"></i></span>
-            <span class="text">已完成</span>
-          </li>
-        </ul>
-      </div>
-
-    </aside>
-
-    <section class="list-view">
-      <div class="list-header-top">
-        <h2>全部笔记</h2>
-      </div>
-
-      <div class="search-action-area">
-        <button id="mobile-menu-btn" class="mobile-only"><i class="fa-solid fa-bars"></i></button>
-
-        <div class="search-box">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="text" placeholder="搜索全部笔记">
-        </div>
-        <button class="add-circle-btn" title="新建笔记">
-          <i class="fa-solid fa-plus"></i>
-        </button>
-      </div>
-
-      <div class="list-stats-bar">
-        <span class="count-text">共 62 条笔记</span>
-        <div class="sort-action">
-          按编辑时间 <i class="fa-solid fa-caret-down"></i>
-        </div>
-      </div>
-
-      <ul class="note-list">
-        <!-- 笔记项模板 -->
-      </ul>
-    </section>
-
-    <main class="editor-view">
-      <div class="toolbar">
-        <!-- <div class="tool-left">
-          <button class="tool-btn mobile-only" id="mobile-back-btn" style="margin-right: 10px;"><i
-              class="fa-solid fa-arrow-left"></i></button>
-
-          <button class="tool-btn"><i class="fa-regular fa-image"></i></button>
-          <button class="tool-btn"><i class="fa-regular fa-square-check"></i></button>
-
-          <span class="divider">|</span>
-
-          <button class="tool-btn text-icon">H<sub>1</sub></button>
-          <button class="tool-btn text-icon">H<sub>2</sub></button>
-          <button class="tool-btn text-icon">H<sub>3</sub></button>
-
-          <button class="tool-btn"><i class="fa-solid fa-bold"></i></button>
-          <button class="tool-btn"><i class="fa-solid fa-italic"></i></button>
-          <button class="tool-btn"><i class="fa-solid fa-underline"></i></button>
-          <button class="tool-btn"><i class="fa-solid fa-strikethrough"></i></button>
-
-          <span class="divider">|</span>
-
-          <button class="tool-btn"><i class="fa-solid fa-list-ul"></i></button>
-          <button class="tool-btn"><i class="fa-solid fa-list-ol"></i></button>
-          <button class="tool-btn"><i class="fa-solid fa-quote-right"></i></button>
-
-          <span class="divider">|</span>
-
-          <button class="tool-btn"><i class="fa-solid fa-align-left"></i></button>
-          <button class="tool-btn" style="color: #f5a623;"><i class="fa-solid fa-font"></i></button>
-        </div> -->
-
-        <div class="tool-right">
-          <!-- <button class="tool-btn" id="preview-btn" title="预览模式"><i class="fa-solid fa-eye"></i></button> -->
-          <button class="tool-btn" id="theme-toggle-btn" title="切换夜间模式"><i class="fa-solid fa-moon"></i></button>
-          <button class="tool-btn" id="undo-btn" title="撤销(Ctrl+Z)"><i
-              class="fa-solid fa-clock-rotate-left"></i></button>
-          <button class="tool-btn delete-btn" title="删除笔记"><i class="fa-regular fa-trash-can"></i></button>
+            <span class="divider">|</span>
+            <button class="tool-btn" id="theme-toggle-btn" title="切换夜间模式">
+              <i class="fa-solid fa-moon"></i>
+            </button>
+            <button class="tool-btn" id="undo-btn" title="撤销(Ctrl+Z)">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </button>
+            <button class="tool-btn delete-btn" title="删除笔记">
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
+          </div>
         </div>
 
-      </div>
+        <div class="editor-container">
+          <input type="text" id="note-title" placeholder="标题" />
+          <textarea id="note-content" placeholder=""></textarea>
 
-      <div class="editor-container">
-        <input type="text" id="note-title" placeholder="标题">
-        <textarea id="note-content" placeholder=""></textarea>
+          <div id="note-preview-area"></div>
+        </div>
+      </main>
+    </div>
 
-        <div id="note-preview-area"></div>
-      </div>
-    </main>
-  </div>
+    <div id="custom-modal" class="modal-overlay" style="display: none">
+      <div class="modal-box">
+        <h3 class="modal-title" id="modal-title">新建文件夹</h3>
+        <p
+          id="modal-desc"
+          style="
+            display: none;
+            margin-bottom: 20px;
+            color: #666;
+            font-size: 14px;
+          "
+        ></p>
 
-  <div id="custom-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-box">
-      <h3 class="modal-title" id="modal-title">新建文件夹</h3>
-      <p id="modal-desc" style="display: none; margin-bottom: 20px; color: #666; font-size: 14px;"></p>
-
-      <input type="text" id="modal-input" class="modal-input" placeholder="请输入名称..." autocomplete="off">
-      <div class="modal-buttons">
-        <button id="modal-cancel" class="modal-btn cancel">取消</button>
-        <button id="modal-confirm" class="modal-btn confirm">确定</button>
+        <input
+          type="text"
+          id="modal-input"
+          class="modal-input"
+          placeholder="请输入名称..."
+          autocomplete="off"
+        />
+        <div class="modal-buttons">
+          <button id="modal-cancel" class="modal-btn cancel">取消</button>
+          <button id="modal-confirm" class="modal-btn confirm">确定</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div id="folder-context-menu" class="context-menu" style="display: none;">
-    <div class="menu-item" id="ctx-rename">
-      <i class="fa-solid fa-pen-to-square"></i> 重命名
+    <div id="folder-context-menu" class="context-menu" style="display: none">
+      <div class="menu-item" id="ctx-rename">
+        <i class="fa-solid fa-pen-to-square"></i> 重命名
+      </div>
+      <div class="menu-item delete" id="ctx-delete">
+        <i class="fa-solid fa-trash-can"></i> 删除
+      </div>
     </div>
-    <div class="menu-item delete" id="ctx-delete">
-      <i class="fa-solid fa-trash-can"></i> 删除
-    </div>
-  </div>
 
-  <script src="scripts/1_data.js"></script>
-  <script src="scripts/2_utils.js"></script>
-  <script src="scripts/3_ui.js"></script>
-  <script src="scripts/4_editor.js"></script>
-  <script src="scripts/5_advanced.js"></script>
-  <script src="scripts/6_main.js"></script>
-</body>
-
+    <script src="scripts/1_data.js"></script>
+    <script src="scripts/2_utils.js"></script>
+    <script src="scripts/3_ui.js"></script>
+    <script src="scripts/4_editor.js"></script>
+    <script src="scripts/5_advanced.js"></script>
+    <script src="scripts/6_main.js"></script>
+  </body>
 </html>
