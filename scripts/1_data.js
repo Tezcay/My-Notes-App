@@ -25,9 +25,29 @@ const defaultCategories = [
 ];
 
 // 2. 数据初始化 (优先读取 LocalStorage)
-let notes = JSON.parse(localStorage.getItem("notes")) || defaultNotes;
-let categories =
-  JSON.parse(localStorage.getItem("categories")) || defaultCategories;
+let notes = [];
+let categories = [];
+
+try {
+  // 尝试读取并解析
+  const savedNotes = localStorage.getItem('notes');
+  const savedCategories =localStorage.getItem('categories');
+
+  // 如果有数据就解析，没有就使用默认
+  notes = savedNotes ? JSON.parse(savedNotes) : defaultNotes;
+  categories = savedCategories ? JSON.parse(savedCategories) : defaultCategories;
+
+  // 二次校验：确保读出来的一定是数组（防止数据变成 null 或其他乱七八糟的）
+  if (!Array.isArray(notes)) notes = defaultNotes;
+  if (!Array.isArray(categories)) categories = defaultCategories;
+} catch (error) {
+  // 如果报错，回退默认状态
+  console.error('本地数据损坏，已自动重置：', error);
+  notes = defaultNotes;
+  categories = defaultCategories;
+  // 修复后应立即保存正确的默认数据
+  saveAllToLocalStorage();
+}
 
 // 3. 数据迁移与兼容 (旧数据修复)
 notes.forEach((note) => {

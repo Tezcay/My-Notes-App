@@ -77,6 +77,15 @@ let notes = [
     categoryId: "todo-unfinished"
   }
 ];
+
+==============================================================================
+
+let notes = JSON.parse(localStorage.getItem("notes")) || defaultNotes;
+let categories =
+  JSON.parse(localStorage.getItem("categories")) || defaultCategories; 
+
+==============================================================================
+
 */
 
 // ============================================
