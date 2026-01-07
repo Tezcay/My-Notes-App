@@ -76,8 +76,14 @@ if (ctxDeleteBtn) {
 
 // 3. 重置编辑器
 function resetEditor() {
+  // 先断开“当前笔记”的关联，然后再清空编辑器。
+  // 否则，清空编辑器的操作会被 EasyMDE 的自动保存逻辑误判为“用户删除了所有内容”，
+  // 进而把空内容覆盖到刚刚移入回收站的笔记里。
+  currentNoteId = null;
+
   const container = document.querySelector(".editor-container");
   const previewArea = document.getElementById("note-preview-area");
+
   if (container) container.classList.remove("preview-mode");
   if (previewArea) previewArea.innerHTML = "";
 
@@ -173,7 +179,8 @@ const exportBtn = document.getElementById("export-btn");
 
 if (exportBtn) {
   // 异步操作：文件保存可以另存为
-  exportBtn.addEventListener("click", async (e) => {  // e 防止事件冒泡
+  exportBtn.addEventListener("click", async (e) => {
+    // e 防止事件冒泡
     // 防止点击按钮时触发侧边栏的“切换分类”逻辑，避免界面闪烁
     e.stopPropagation();
 

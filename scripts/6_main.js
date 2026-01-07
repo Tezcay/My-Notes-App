@@ -42,25 +42,46 @@ if (addFolderBtn) {
 
 // 新增笔记
 if (addNoteBtn) {
-  addNoteBtn.addEventListener("click", () => {
+  addNoteBtn.addEventListener('click', () => {
     const newId = String(Date.now());
     let targetCategoryId = currentCategoryId;
-    if (currentCategoryId === "all" || currentCategoryId.startsWith("todo"))
-      targetCategoryId = "uncategorized";
 
-    const newNote = {
-      id: newId,
-      title: "新建笔记",
-      content: "",
-      updateTime: Date.now(),
-      categoryId: targetCategoryId,
+    // 🧠 智能判断新建笔记的归属
+    if (currentCategoryId === "all") {
+      // 如果在“全部”里新建，默认归入“未分类”
+      targetCategoryId = "uncategorized";
+    } else if (currentCategoryId === "todo-finished") {
+      // 如果在“已完成”里新建，自动归入“未完成”（毕竟刚创建的一般都没做完）
+      targetCategoryId = "todo-unfinished";
+    }
+    // 如果是 "todo-unfinished"，就保持原样，不用变
+
+    const newNote = { 
+      id: newId, 
+      title: '新建待办', // 稍微改个默认标题，区分一下
+      content: '', 
+      updateTime: Date.now(), 
+      categoryId: targetCategoryId 
     };
+    
     notes.unshift(newNote);
     saveAllToLocalStorage();
+    
+    // 如果之前因为切换分类清空了 currentNoteId，现在要选中新的
     currentNoteId = newId;
-    renderNoteList();
+    
+    // 强制刷新视图
+    // 注意：如果你之前在“已完成”里新建，现在要自动跳到“未完成”视图才能看到它
+    if (currentCategoryId === "todo-finished") {
+       switchCategory('todo-unfinished', '未完成');
+    } else {
+       renderNoteList();
+    }
+    
     loadNoteToEditor(newNote);
-    editorTitle.focus();
+    
+    // 聚焦标题栏，方便直接打字
+    if (editorTitle) editorTitle.focus();
   });
 }
 
@@ -220,3 +241,42 @@ if (undoBtn)
 renderFolderList();
 renderNoteList();
 initTheme();
+
+
+// ===========================================
+// ✅ 待办事项逻辑 (Todo Logic)
+// ===========================================
+
+// 使用“事件委托”监听复选框点击
+// (因为复选框是动态生成的，直接监听父元素 noteListEl 最稳妥)
+noteListEl.addEventListener('change', (e) => {
+  // 检查点击的是不是复选框
+  if (e.target.classList.contains('todo-checkbox')) {
+    const noteId = e.target.dataset.id; // 获取笔记ID
+    const isChecked = e.target.checked; // 是打钩(true)还是取消(false)
+    
+    // 1. 在数组里找到这条笔记
+    const note = notes.find(n => n.id == noteId);
+    if (!note) return;
+
+    // 2. 核心逻辑：切换分类
+    if (isChecked) {
+      // 变成已完成
+      note.categoryId = 'todo-finished';
+      // 稍微延迟一下刷新，让用户看到打钩的动画
+      setTimeout(() => {
+        renderNoteList(); 
+      }, 200);
+    } else {
+      // 变成未完成
+      note.categoryId = 'todo-unfinished';
+      setTimeout(() => {
+        renderNoteList();
+      }, 200);
+    }
+
+    // 3. 更新时间并保存
+    note.updateTime = Date.now();
+    saveAllToLocalStorage();
+  }
+});

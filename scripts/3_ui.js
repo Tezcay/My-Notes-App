@@ -138,9 +138,29 @@ function renderNoteList() {
       currentSearchKeyword
     );
 
-    li.innerHTML = `<div class="note-title">${displayTitle}</div><div class="note-preview">${displayContent}</div><div class="note-date">${formatTime(
-      note.updateTime
-    )}</div>`;
+    // 新增：判断是否是待办事项
+    const isTodo = currentCategoryId.startsWith('todo'); // 未完成
+    const isFinished = currentCategoryId === 'todo-finished'; // 已完成
+
+    // 准备复选框(检查是否是待办, 否显示空)
+    const checkboxHtml = isTodo 
+      ? `<div class="todo-check-wrapper" onclick="event.stopPropagation()">
+      <input type="checkbox" class="todo-checkbox" data-id="${note.id}" ${isFinished ? 'checked' : ''}>
+         </div>`
+      : '';
+
+    // 标题样式
+    const titleStyle = isFinished ? 'text-decoration: line-through; color: #aaa;' : '';
+    
+
+    li.innerHTML = `
+      ${checkboxHtml}
+      <div class="note-content-wrapper" style="flex:1; overflow:hidden;">
+        <div class="note-title" style="${titleStyle}">${displayTitle}</div>
+        <div class="note-preview">${displayContent}</div>
+        <div class="note-date">${formatTime(note.updateTime)}</div>
+      </div>
+    `;
 
     li.addEventListener("click", () => {
       currentNoteId = note.id;
