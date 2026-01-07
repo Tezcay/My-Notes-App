@@ -296,6 +296,9 @@ function loadNoteToEditor(note) {
   // d. 确保不在预览模式
   const container = document.querySelector('.editor-container');
   if (container) container.classList.remove('preview-mode');
+
+  // 移动端点击不同的笔记时，工具栏上的“锁”应该自动变化
+  if (typeof updateToolbarIcons === 'function') updateToolbarIcons(note);
 }
 
 

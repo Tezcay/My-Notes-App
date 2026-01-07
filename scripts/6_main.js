@@ -384,6 +384,144 @@ document.addEventListener('keydown', (e) => {
 });
 
 
+// ===========================================
+// 📱 移动端逻辑 (Mobile Logic)
+// ===========================================
+
+// 1. 汉堡菜单 -> 打开侧边栏
+if (mobileMenuBtn) {
+  mobileMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    sidebar.classList.add('open');
+  });
+}
+
+// 2. 点击侧边栏遮罩 -> 关闭侧边栏
+// (简单的做法：点击侧边栏任意链接后自动关闭)
+sidebar.addEventListener('click', (e) => {
+  if (window.innerWidth <= 768 && e.target.closest('.nav-item')) {
+    sidebar.classList.remove('open');
+  }
+});
+
+// 点击侧边栏外部关闭 (高级体验)
+document.addEventListener('click', (e) => {
+  if (window.innerWidth <= 768 && 
+      sidebar.classList.contains('open') && 
+      !sidebar.contains(e.target) && 
+      e.target !== mobileMenuBtn) {
+    sidebar.classList.remove('open');
+  }
+});
+
+// 3. 返回按钮 (从编辑器 -> 列表)
+if (mobileBackBtn) {
+  mobileBackBtn.addEventListener('click', () => {
+    // 移除编辑模式类名，让编辑器滑走
+    appContainer.classList.remove('mobile-editing');
+    
+    // 关键：手机上返回列表时，要把键盘收起，并重置选中状态
+    if (document.activeElement) document.activeElement.blur();
+    
+    // 可选：稍微延迟一下清除当前ID，以免滑出动画时内容突然变空
+    setTimeout(() => {
+        // currentNoteId = null; // 如果你想保留选中状态，这行可以注释掉
+    }, 300);
+  });
+}
+
+// ===========================================
+// 📱 移动端/快捷操作适配 (工具栏按钮)
+// ===========================================
+
+// 1. 加密/解密按钮 (Lock Button)
+const lockBtn = document.getElementById('lock-btn');
+if (lockBtn) {
+  lockBtn.addEventListener('click', () => {
+    if (!currentNoteId) { alert('请先选择一条笔记'); return; }
+    
+    const note = notes.find(n => n.id == currentNoteId);
+    if (!note) return;
+
+    // 判断当前状态
+    if (note.categoryId === 'private') {
+      // A. 如果已经在私密里 -> 移出来 (移到未分类)
+      showConfirm('解除私密', '确定要将此笔记移出私密空间吗？', () => {
+         handleMoveNoteToCategory(currentNoteId, 'uncategorized');
+         alert('🔓 笔记已解除私密，移至“未分类”');
+         // 刷新图标状态
+         updateToolbarIcons(note);
+      });
+    } else {
+      // B. 如果是普通笔记 -> 移进去 (复用之前的逻辑)
+      // 注意：handleMoveNoteToCategory 里面已经包含了密码验证逻辑
+      handleMoveNoteToCategory(currentNoteId, 'private');
+      // 移动成功后图标会在渲染时自动更新
+    }
+  });
+}
+
+// 2. 移动文件夹按钮 (Move Button)
+const moveBtn = document.getElementById('move-btn');
+if (moveBtn) {
+  moveBtn.addEventListener('click', () => {
+    if (!currentNoteId) { alert('请先选择一条笔记'); return; }
+    
+    // 生成一个选项列表供用户选择
+    // 这里我们简单用 prompt 或者 confirm，为了体验更好，建议用自定义 Modal
+    // 但为了代码简洁，我们这里复用 showModal 改造成“下拉选择”比较麻烦
+    // 我们用一个简单的原生技巧：构建一个临时的选择文本
+    
+    let promptText = "请输入目标文件夹的名称或序号：\n";
+    // 过滤掉特殊分类，只显示用户文件夹
+    const validCategories = categories.filter(c => !['private', 'trash'].includes(c.id));
+    
+    validCategories.forEach((c, index) => {
+        promptText += `[${index + 1}] ${c.name}\n`;
+    });
+    promptText += `[0] 未分类`;
+
+    // 弹窗询问 (简化版交互)
+    const input = prompt(promptText);
+    if (input === null) return; // 取消
+    
+    let targetCategory = null;
+    const index = parseInt(input);
+    
+    if (!isNaN(index)) {
+        if (index === 0) targetCategory = { id: 'uncategorized', name: '未分类' };
+        else if (index > 0 && index <= validCategories.length) {
+            targetCategory = validCategories[index - 1];
+        }
+    } else {
+        // 尝试按名字匹配
+        targetCategory = validCategories.find(c => c.name === input);
+    }
+
+    if (targetCategory) {
+        handleMoveNoteToCategory(currentNoteId, targetCategory.id);
+        alert(`📂 已移动到 "${targetCategory.name}"`);
+    } else {
+        alert('❌ 未找到该文件夹');
+    }
+  });
+}
+
+// 3. 辅助函数：根据当前笔记状态更新图标 (可选)
+function updateToolbarIcons(note) {
+    if (!note) return;
+    const icon = lockBtn.querySelector('i');
+    if (note.categoryId === 'private') {
+        icon.className = 'fa-solid fa-lock-open'; // 显示“解锁”图标
+        lockBtn.title = "解除私密状态";
+        lockBtn.classList.add('active'); // 可以加个高亮样式
+    } else {
+        icon.className = 'fa-solid fa-lock'; // 显示“上锁”图标
+        lockBtn.title = "移入私密空间";
+        lockBtn.classList.remove('active');
+    }
+}
+
 
 // 一直都放最后
 // ===========================================
