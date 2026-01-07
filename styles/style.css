@@ -1069,6 +1069,38 @@ li {
   pointer-events: none; /* 让子元素不响应鼠标事件，只响应 li */
 }
 
+/* ===========================================
+   🖼️ 编辑器空白状态 (Editor Empty State)
+   =========================================== */
+
+.editor-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-tertiary); /* 使用你定义好的灰色变量 */
+  user-select: none; /* 防止用户误选中文本 */
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.editor-empty-state i {
+  font-size: 64px;
+  margin-bottom: 24px;
+  opacity: 0.3; /* 让图标淡淡的，不抢眼 */
+  color: var(--text-muted);
+}
+
+.editor-empty-state p {
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+/* 隐藏编辑器的辅助类 (用于切换状态) */
+.editor-hidden {
+  display: none !important;
+}
+
 /* ============================================================================
    文件结束
    ============================================================================ */

@@ -274,13 +274,6 @@ if (undoBtn)
     }
   });
 
-// ===========================================
-// 🚀 初始化应用
-// ===========================================
-renderFolderList();
-renderNoteList();
-initTheme();
-
 
 // ===========================================
 // ✅ 待办事项逻辑 (Todo Logic)
@@ -319,3 +312,89 @@ noteListEl.addEventListener('change', (e) => {
     saveAllToLocalStorage();
   }
 });
+
+
+// ===========================================
+// ⌨️ 全局快捷键支持 (Shortcuts)
+// ===========================================
+
+document.addEventListener('keydown', (e) => {
+  // 1. Ctrl + S (保存)
+  // e.metaKey 是为了兼容 Mac 的 Command 键
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault(); // 阻止浏览器弹出“保存网页”的默认窗口
+    
+    // 执行保存
+    if (currentNoteId) {
+      const note = notes.find(n => n.id == currentNoteId);
+      if (note) {
+        note.updateTime = Date.now();
+        // 重新渲染列表以更新时间显示
+        renderNoteList(); 
+      }
+    }
+    saveAllToLocalStorage();
+
+    // ✨ 给一点视觉反馈 (在底部的统计栏闪烁一下“已保存”)
+    const originalText = noteCountEl.textContent;
+    noteCountEl.textContent = "✅ 已保存";
+    noteCountEl.style.color = "var(--accent-green)";
+    
+    setTimeout(() => {
+      noteCountEl.textContent = originalText;
+      noteCountEl.style.color = "";
+    }, 1000);
+  }
+
+  // 2. Ctrl + N (新建笔记)
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+    e.preventDefault();
+    // 触发新建按钮的点击事件
+    if (addNoteBtn) addNoteBtn.click();
+  }
+
+  // 3. Esc (关闭弹窗 / 清除搜索 / 退出编辑)
+  if (e.key === 'Escape') {
+    // 优先级 1: 如果有弹窗，先关弹窗
+    const modal = document.getElementById('custom-modal');
+    const ctxMenu = document.getElementById('folder-context-menu');
+    
+    if (modal && modal.style.display === 'flex') {
+      hideModal();
+      return;
+    }
+    
+    if (ctxMenu && ctxMenu.style.display === 'block') {
+      ctxMenu.style.display = 'none';
+      return;
+    }
+
+    // 优先级 2: 如果正在搜索，清除搜索
+    if (document.activeElement === searchInput) {
+      searchInput.value = '';
+      searchInput.blur();
+      currentSearchKeyword = '';
+      renderNoteList();
+      return;
+    }
+    
+    // 优先级 3: 退出全屏或聚焦到列表（可选）
+    // 目前没有全屏功能，暂时不做处理
+  }
+});
+
+
+
+// 一直都放最后
+// ===========================================
+// 🚀 初始化应用
+// ===========================================
+renderFolderList();
+renderNoteList();
+initTheme();
+
+// 初始化编辑器状态
+// 如果当前没有选中笔记，就直接显示“空白欢迎页”
+if (!currentNoteId) {
+  resetEditor();
+}

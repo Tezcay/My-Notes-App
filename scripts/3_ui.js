@@ -252,22 +252,52 @@ function renderNoteList() {
 function loadNoteToEditor(note) {
   isLoadingNote = true;
   currentNoteId = note.id;
-  editorTitle.value = note.title;
 
-  if (typeof easyMDE !== "undefined" && easyMDE) {
+  // a. 🧹 移除空白状态
+  const emptyState = document.getElementById('editor-empty-state');
+  if (emptyState) {
+    emptyState.style.display = 'none'; // 隐藏空白页
+  }
+
+  // b. 🔓 显示并填充标题
+  if (editorTitle) {
+      editorTitle.classList.remove('editor-hidden'); // 显示标题栏
+      editorTitle.disabled = false;
+      editorTitle.value = note.title;
+  }
+
+  // c. 🔓 显示并填充编辑器
+  if (typeof easyMDE !== 'undefined' && easyMDE) {
+    // 显示 EasyMDE 容器
+    const easyMDEWrapper = document.querySelector('.EasyMDEContainer');
+    if (easyMDEWrapper) easyMDEWrapper.classList.remove('editor-hidden');
+
     easyMDE.value(note.content || "");
-    setTimeout(() => {
-      isLoadingNote = false;
-    }, 200);
+    
+    // 关键：因为刚才 display:none 了，CodeMirror 需要刷新一下才能计算高度
+    if (easyMDE.codemirror) {
+        easyMDE.codemirror.setOption("readOnly", false);
+        setTimeout(() => {
+            easyMDE.codemirror.refresh(); 
+        }, 10);
+    }
+
+    setTimeout(() => { isLoadingNote = false; }, 200);
   } else {
-    editorContent.value = note.content || "";
+    // 兼容原生
+    if (editorContent) {
+        editorContent.classList.remove('editor-hidden');
+        editorContent.disabled = false;
+        editorContent.value = note.content || "";
+    }
     isLoadingNote = false;
   }
 
-  const container = document.querySelector(".editor-container");
-  if (container) container.classList.remove("preview-mode");
-  editorTitle.disabled = false;
+  // d. 确保不在预览模式
+  const container = document.querySelector('.editor-container');
+  if (container) container.classList.remove('preview-mode');
 }
+
 
 // 弹窗逻辑
 const modalOverlay = document.getElementById("custom-modal");

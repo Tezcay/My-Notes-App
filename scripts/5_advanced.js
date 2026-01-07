@@ -74,38 +74,58 @@ if (ctxDeleteBtn) {
   });
 }
 
-// 3. 重置编辑器
+// 3. 重置编辑器 (显示空白欢迎页)
 function resetEditor() {
-  // 先断开“当前笔记”的关联，然后再清空编辑器。
-  // 否则，清空编辑器的操作会被 EasyMDE 的自动保存逻辑误判为“用户删除了所有内容”，
-  // 进而把空内容覆盖到刚刚移入回收站的笔记里。
+  // a. 断开关联
   currentNoteId = null;
 
-  const container = document.querySelector(".editor-container");
-  const previewArea = document.getElementById("note-preview-area");
-
-  if (container) container.classList.remove("preview-mode");
-  if (previewArea) previewArea.innerHTML = "";
-
-  editorTitle.value = "";
-  if (typeof editorContent !== "undefined" && editorContent)
-    editorContent.value = "";
-  editorTitle.disabled = false;
-
-  if (typeof easyMDE !== "undefined" && easyMDE) {
-    easyMDE.value("");
-    setTimeout(() => {
-      if (easyMDE.codemirror) easyMDE.codemirror.refresh();
-    }, 10);
+  // b. 获取 DOM 元素
+  const editorContainer = document.querySelector('.editor-container');
+  const titleInput = document.getElementById('note-title');
+  const previewArea = document.getElementById('note-preview-area');
+  
+  // c. 隐藏所有编辑控件 (标题、EasyMDE、原生输入框、预览区)
+  if (titleInput) titleInput.classList.add('editor-hidden');
+  if (previewArea) previewArea.innerHTML = '';
+  
+  // 隐藏 EasyMDE 的容器
+  const easyMDEWrapper = document.querySelector('.EasyMDEContainer');
+  if (easyMDEWrapper) {
+      easyMDEWrapper.classList.add('editor-hidden');
+  } else {
+      // 兼容原生 textarea
+      const contentInput = document.getElementById('note-content');
+      if (contentInput) contentInput.classList.add('editor-hidden');
   }
 
-  const previewBtn = document.querySelector(".editor-toolbar .fa-pen");
-  if (previewBtn) {
-    previewBtn.classList.remove("fa-pen");
-    previewBtn.classList.add("fa-eye");
-    previewBtn.title = "预览";
+  // d. 重置预览按钮图标
+  const previewBtn = document.querySelector('.editor-toolbar .fa-pen');
+  if (previewBtn) { 
+    previewBtn.classList.remove('fa-pen'); 
+    previewBtn.classList.add('fa-eye'); 
+    previewBtn.title = "预览"; 
   }
-  currentNoteId = null;
+  
+  // e. ✨ 核心：插入空白状态 (如果还没插入过)
+  // 检查是否已经有空白页了，避免重复添加
+  let emptyState = document.getElementById('editor-empty-state');
+  
+  if (!emptyState) {
+    emptyState = document.createElement('div');
+    emptyState.id = 'editor-empty-state';
+    emptyState.className = 'editor-empty-state';
+    
+    // 图标和文字
+    emptyState.innerHTML = `
+      <i class="fa-regular fa-pen-to-square"></i>
+      <p>点击新建或选择笔记，开始记录你的想法</p>
+    `;
+    
+    editorContainer.appendChild(emptyState);
+  }
+  
+  // 确保空白页是显示的
+  emptyState.style.display = 'flex';
 }
 
 // 4. 标题回车跳正文
