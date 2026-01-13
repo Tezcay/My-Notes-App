@@ -1,0 +1,13 @@
+# System Files
+.DS_Store
+Thumbs.db
+*.log
+
+# Dependencies
+node_modules/
+dist/
+.env
+
+# Tool Specific
+.vscode/
+.idea/
