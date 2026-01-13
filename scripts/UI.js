@@ -9,14 +9,14 @@
  * 渲染左侧文件夹列表 (支持双重拖拽：笔记归档 + 文件夹排序)
  */
 function renderFolderList() {
-  folderListEl.innerHTML = '';
+  folderListEl.innerHTML = "";
 
   // 容错处理
   if (!categories) categories = [];
 
   categories.forEach((category, index) => {
-    const li = document.createElement('li');
-    li.className = 'nav-item sub-item';
+    const li = document.createElement("li");
+    li.className = "nav-item sub-item";
     li.dataset.id = category.id;
     li.dataset.index = index; // 记录索引，方便排序
 
@@ -24,13 +24,13 @@ function renderFolderList() {
     li.draggable = true;
 
     // 选中状态
-    if (currentCategoryId === category.id) li.classList.add('active');
+    if (currentCategoryId === category.id) li.classList.add("active");
 
     // 内容渲染
     li.innerHTML = `<span class="icon"><i class="fa-regular fa-folder"></i></span><span class="text">${category.name}</span>`;
 
     // 2. 绑定右键菜单
-    li.addEventListener('contextmenu', (e) => {
+    li.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       // 必须恢复 pointer-events 才能点击，或者直接在这里处理
       showContextMenu(e, category.id);
@@ -41,54 +41,60 @@ function renderFolderList() {
     // ========================================================
 
     // A. 开始拖拽 (Drag Start)
-    li.addEventListener('dragstart', (e) => {
+    li.addEventListener("dragstart", (e) => {
       // 标记当前正在拖拽的是“文件夹”
-      e.dataTransfer.setData('application/x-type', 'folder');
-      e.dataTransfer.setData('folder-index', index); // 传索引比传ID方便排序
-      
+      e.dataTransfer.setData("application/x-type", "folder");
+      e.dataTransfer.setData("folder-index", index); // 传索引比传ID方便排序
+
       // 视觉效果
-      li.classList.add('dragging');
+      li.classList.add("dragging");
       e.stopPropagation(); // 防止冒泡
     });
 
     // B. 拖拽结束 (Drag End)
-    li.addEventListener('dragend', () => {
-      li.classList.remove('dragging');
+    li.addEventListener("dragend", () => {
+      li.classList.remove("dragging");
       // 清理所有的高亮样式
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('drag-over'));
+      document
+        .querySelectorAll(".nav-item")
+        .forEach((el) => el.classList.remove("drag-over"));
     });
 
     // C. 拖拽经过 (Drag Over)
-    li.addEventListener('dragover', (e) => {
+    li.addEventListener("dragover", (e) => {
       e.preventDefault(); // 必须阻止默认行为才能触发 drop
-      
+
       // 获取当前拖拽的类型
       // 注意：dragover 中不能直接读取 getData 的值，但可以读取 types
       // 这里简单处理：只要是拖拽，就高亮
-      li.classList.add('drag-over');
+      li.classList.add("drag-over");
     });
 
     // D. 拖拽离开 (Drag Leave)
-    li.addEventListener('dragleave', () => {
-      li.classList.remove('drag-over');
+    li.addEventListener("dragleave", () => {
+      li.classList.remove("drag-over");
     });
 
     // E. 放下 (Drop) - 核心判断逻辑！
-    li.addEventListener('drop', (e) => {
+    li.addEventListener("drop", (e) => {
       e.preventDefault();
-      li.classList.remove('drag-over');
+      li.classList.remove("drag-over");
 
       // --- 判断 1：是“文件夹排序”吗？ ---
-      const dragType = e.dataTransfer.getData('application/x-type');
-      if (dragType === 'folder') {
-        const fromIndex = parseInt(e.dataTransfer.getData('folder-index'));
+      // 从数据口袋里取出 'application/x-type'，看看是不是 'folder'
+      const dragType = e.dataTransfer.getData("application/x-type");
+      if (dragType === "folder") {
+        // 如果是文件夹排序，涉及到数组元素的移动
+        // splice(index, 1) 是删除, splice(index, 0, item) 是插入
+        const fromIndex = parseInt(e.dataTransfer.getData("folder-index"));
         const toIndex = index; // 当前这个 li 的索引
 
         if (fromIndex !== toIndex && !isNaN(fromIndex)) {
           // 数组移动元素：先切掉，再插入
+          // [movedItem] 是解构赋值，取出被删除的那个元素
           const [movedItem] = categories.splice(fromIndex, 1); // 拿出
           categories.splice(toIndex, 0, movedItem); // 插进去
-          
+
           // 保存并重新渲染
           saveAllToLocalStorage();
           renderFolderList();
@@ -99,8 +105,9 @@ function renderFolderList() {
 
       // --- 判断 2：是“移动笔记”吗？ ---
       // 这里的 'text/plain' 是我们在 renderNoteList 里设置的 noteId
-      const noteId = e.dataTransfer.getData('text/plain');
+      const noteId = e.dataTransfer.getData("text/plain");
       if (noteId) {
+        // 调用 Main.js 里的移动逻辑
         handleMoveNoteToCategory(noteId, category.id);
         console.log(`📝 笔记移动：笔记 ${noteId} -> 文件夹 ${category.name}`);
       }
@@ -108,7 +115,7 @@ function renderFolderList() {
 
     folderListEl.appendChild(li);
   });
-  
+
   updateStaticNavHighlight();
 }
 
@@ -131,15 +138,28 @@ function updateStaticNavHighlight() {
 /**
  * 渲染笔记列表
  */
+/**
+ * 渲染笔记列表
+ * 核心逻辑：过滤 -> 排序 -> 生成HTML
+ */
 function renderNoteList() {
+  // 1. 过滤 (Filter)
+  // 就像筛子一样，只保留符合条件的笔记
   const filteredNotes = notes.filter((note) => {
+    // A. 搜索过滤
+    // 把标题和内容都转成小写(toLowerCase)，实现不区分大小写的搜索
     const contentToSearch = (note.title + note.content).toLowerCase();
     const keyword = currentSearchKeyword.toLowerCase();
-    if (!contentToSearch.includes(keyword)) return false;
+    if (!contentToSearch.includes(keyword)) return false; // 如果不包含关键词，直接筛掉
 
+    // B. 分类过滤
     if (currentCategoryId === "trash") return note.categoryId === "trash";
-    if (note.categoryId === "trash") return false;
+    if (note.categoryId === "trash") return false; // 普通列表不显示回收站里的
+
+    // 如果是“全部笔记”，要排除掉“私密笔记”
     if (currentCategoryId === "all") return note.categoryId !== "private";
+
+    // 默认情况：只显示属于当前分类ID的笔记
     return note.categoryId === currentCategoryId;
   });
 
@@ -181,13 +201,13 @@ function renderNoteList() {
     li.dataset.id = note.id;
     li.className = "note-item";
 
-    li.draggable = true; 
-    li.addEventListener('dragstart', (e) => {
-      e.dataTransfer.setData('text/plain', note.id.toString()); // 传递笔记ID
-      li.classList.add('dragging');
+    li.draggable = true;
+    li.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/plain", note.id.toString()); // 传递笔记ID
+      li.classList.add("dragging");
     });
-    li.addEventListener('dragend', () => { 
-      li.classList.remove('dragging'); 
+    li.addEventListener("dragend", () => {
+      li.classList.remove("dragging");
     });
 
     if (note.id === currentNoteId) li.classList.add("active");
@@ -215,19 +235,22 @@ function renderNoteList() {
     );
 
     // 新增：判断是否是待办事项
-    const isTodo = currentCategoryId.startsWith('todo'); // 未完成
-    const isFinished = currentCategoryId === 'todo-finished'; // 已完成
+    const isTodo = currentCategoryId.startsWith("todo"); // 未完成
+    const isFinished = currentCategoryId === "todo-finished"; // 已完成
 
     // 准备复选框(检查是否是待办, 否显示空)
-    const checkboxHtml = isTodo 
+    const checkboxHtml = isTodo
       ? `<div class="todo-check-wrapper" onclick="event.stopPropagation()">
-      <input type="checkbox" class="todo-checkbox" data-id="${note.id}" ${isFinished ? 'checked' : ''}>
+      <input type="checkbox" class="todo-checkbox" data-id="${note.id}" ${
+          isFinished ? "checked" : ""
+        }>
          </div>`
-      : '';
+      : "";
 
     // 标题样式
-    const titleStyle = isFinished ? 'text-decoration: line-through; color: #aaa;' : '';
-    
+    const titleStyle = isFinished
+      ? "text-decoration: line-through; color: #aaa;"
+      : "";
 
     li.innerHTML = `
       ${checkboxHtml}
@@ -254,53 +277,54 @@ function loadNoteToEditor(note) {
   currentNoteId = note.id;
 
   // a. 🧹 移除空白状态
-  const emptyState = document.getElementById('editor-empty-state');
+  const emptyState = document.getElementById("editor-empty-state");
   if (emptyState) {
-    emptyState.style.display = 'none'; // 隐藏空白页
+    emptyState.style.display = "none"; // 隐藏空白页
   }
 
   // b. 🔓 显示并填充标题
   if (editorTitle) {
-      editorTitle.classList.remove('editor-hidden'); // 显示标题栏
-      editorTitle.disabled = false;
-      editorTitle.value = note.title;
+    editorTitle.classList.remove("editor-hidden"); // 显示标题栏
+    editorTitle.disabled = false;
+    editorTitle.value = note.title;
   }
 
   // c. 🔓 显示并填充编辑器
-  if (typeof easyMDE !== 'undefined' && easyMDE) {
+  if (typeof easyMDE !== "undefined" && easyMDE) {
     // 显示 EasyMDE 容器
-    const easyMDEWrapper = document.querySelector('.EasyMDEContainer');
-    if (easyMDEWrapper) easyMDEWrapper.classList.remove('editor-hidden');
+    const easyMDEWrapper = document.querySelector(".EasyMDEContainer");
+    if (easyMDEWrapper) easyMDEWrapper.classList.remove("editor-hidden");
 
     easyMDE.value(note.content || "");
-    
+
     // 关键：因为刚才 display:none 了，CodeMirror 需要刷新一下才能计算高度
     if (easyMDE.codemirror) {
-        easyMDE.codemirror.setOption("readOnly", false);
-        setTimeout(() => {
-            easyMDE.codemirror.refresh(); 
-        }, 10);
+      easyMDE.codemirror.setOption("readOnly", false);
+      setTimeout(() => {
+        easyMDE.codemirror.refresh();
+      }, 10);
     }
 
-    setTimeout(() => { isLoadingNote = false; }, 200);
+    setTimeout(() => {
+      isLoadingNote = false;
+    }, 200);
   } else {
     // 兼容原生
     if (editorContent) {
-        editorContent.classList.remove('editor-hidden');
-        editorContent.disabled = false;
-        editorContent.value = note.content || "";
+      editorContent.classList.remove("editor-hidden");
+      editorContent.disabled = false;
+      editorContent.value = note.content || "";
     }
     isLoadingNote = false;
   }
 
   // d. 确保不在预览模式
-  const container = document.querySelector('.editor-container');
-  if (container) container.classList.remove('preview-mode');
+  const container = document.querySelector(".editor-container");
+  if (container) container.classList.remove("preview-mode");
 
   // 移动端点击不同的笔记时，工具栏上的“锁”应该自动变化
-  if (typeof updateToolbarIcons === 'function') updateToolbarIcons(note);
+  if (typeof updateToolbarIcons === "function") updateToolbarIcons(note);
 }
-
 
 // 弹窗逻辑
 const modalOverlay = document.getElementById("custom-modal");

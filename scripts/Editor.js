@@ -5,12 +5,13 @@
 let easyMDE = null;
 
 if (editorContent) {
+  // EasyMDE 是一个第三方库，这里 new EasyMDE({...}) 是在创建它的实例
   easyMDE = new EasyMDE({
-    element: editorContent,
-    spellChecker: false,
-    status: false,
-    autofocus: false,
-    hideIcons: ["fullscreen", "side-by-side"],
+    element: editorContent, // 告诉它把编辑器也装在哪个 textarea 里
+    spellChecker: false, // 关掉拼写检查（不然中文全是红波浪线）
+    status: false, // 关掉底部的状态栏（行数、字数等）
+    autofocus: false, // 打开页面时不自动聚焦
+    hideIcons: ["fullscreen", "side-by-side"], // 隐藏某些不需要的默认按钮
     toolbar: [
       {
         name: "bold",
@@ -183,17 +184,27 @@ if (editorContent) {
     }
   });
 
-  // 粘贴图片
+  // 粘贴图片的核心逻辑
+  // 监听 CodeMirror（EasyMDE底层）的 'paste' 事件
   easyMDE.codemirror.on("paste", function (editor, e) {
+    // 1. 检查粘贴板里有没有东西，且是不是图片
     if (!(e.clipboardData && e.clipboardData.items)) return;
     for (let i = 0, len = e.clipboardData.items.length; i < len; i++) {
       let item = e.clipboardData.items[i];
       if (item.type.indexOf("image") !== -1) {
+        // 2. 如果是图片，阻止默认的粘贴行为（防止贴出一堆乱码字符串）
         e.preventDefault();
+
+        // 3. 将图片转换成 Blob 对象
         let blob = item.getAsFile();
+
+        // 4. 使用 FileReader 把图片读取为 Base64 编码
         let reader = new FileReader();
         reader.onload = function (event) {
+          // 5. 插入 Markdown 图片语法到编辑器当前光标位置
+          // ![标题](图片数据)
           editor.replaceSelection(`\n![粘贴的图片](${event.target.result})\n`);
+          // 告诉编辑器内容变了，触发保存
           CodeMirror.signal(editor, "change", editor);
         };
         reader.readAsDataURL(blob);

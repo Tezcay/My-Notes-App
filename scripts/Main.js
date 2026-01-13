@@ -2,26 +2,43 @@
 // 【模块D】事件入口 ⚡ (Main)
 // ============================================================================
 
+/**
+ * 切换分类的核心逻辑
+ * @param {string} id - 目标分类的ID (如 'folder-123' 或 'all')
+ * @param {string} name - 目标分类的名称 (用于显示在顶部标题)
+ */
 function switchCategory(id, name) {
   currentCategoryId = id;
-  currentNoteId = null;
-  listTitleEl.textContent = name;
-  renderFolderList();
-  renderNoteList();
+  currentNoteId = null; // 切换分类后，取消选中任何笔记
+  listTitleEl.textContent = name; // 更新列表上方的标题
+
+  renderFolderList(); // 重新画左边的文件夹（为了更新高亮选中态）
+  renderNoteList(); // 重新画中间的笔记列表（只显示当前分类下的笔记）
+
+  // 清空右侧编辑器
   editorTitle.value = "";
   if (typeof easyMDE !== "undefined" && easyMDE) easyMDE.value("");
+
+  // 移动端优化：如果是手机（宽度<=768），点完分类自动收起侧边栏
   if (window.innerWidth <= 768) sidebar.classList.remove("open");
 }
 
 // 1. 侧边栏点击
+// 1. 侧边栏点击事件 (事件委托)
+// 我们把点击事件绑定在父元素 sidebar 上，而不是每个小按钮上
+// 这样做的好处是：即使后来动态添加了新文件夹，也不用重新绑定事件
 sidebar.addEventListener("click", (e) => {
+  // .closest: 往上找最近的那个 .nav-item 元素
+  // 比如你点了图标 <i>，它会往上找到包裹它的 <li>
   const navItem = e.target.closest(".nav-item");
   if (navItem) {
-    const targetId = navItem.dataset.id;
+    const targetId = navItem.dataset.id; // 获取 html 里写的 data-id="..."
     const targetName = navItem.querySelector(".text").textContent;
+
+    // 特殊逻辑：如果是私密笔记，需要验证密码
     if (targetId === "private") {
       handlePrivateAccess(targetId, targetName);
-      return;
+      return; // 这里的 return 很重要，阻止后面的 switchCategory 执行
     }
     switchCategory(targetId, targetName);
   }
@@ -98,17 +115,27 @@ if (addNoteBtn) {
 }
 
 // 4. 标题实时保存
+// 4. 标题实时保存 (Input 事件)
+// oninput: 只要输入框内容有任何变化（打字、删除、粘贴）都会触发
 if (editorTitle) {
   editorTitle.addEventListener("input", (e) => {
+    // 安全检查：只有选中了笔记才能改标题
     if (currentNoteId) {
+      // 1. 找到当前内存里的那条笔记对象
       const note = notes.find((n) => n.id == currentNoteId);
       if (note) {
+        // 2. 更新内存数据
         note.title = e.target.value;
-        note.updateTime = Date.now();
+        note.updateTime = Date.now(); // 甚至更新一下最后修改时间
+
+        // 3. 存进硬盘
         saveAllToLocalStorage();
+
+        // 4. 只更新左边列表里对应的那个标题（不用整个列表重画，提高性能）
         const activeTitle = document.querySelector(
           `.note-item[data-id="${currentNoteId}"] .note-title`
         );
+        // 如果标题空了，显示“无标题”占位
         if (activeTitle) activeTitle.textContent = note.title || "无标题";
       }
     }
