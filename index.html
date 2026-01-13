@@ -9,6 +9,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <link rel="icon" type="image/svg+xml" href="assets/images/book.svg" />
+    <link rel="manifest" href="manifest.json" />
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link
       rel="stylesheet"
@@ -22,7 +23,7 @@
     <div class="app">
       <aside class="sidebar">
         <div class="sidebar-group">
-          <div class="group-title">笔记</div>
+          <div class="group-title">102300428 何振坤</div>
 
           <ul class="nav-list">
             <li class="nav-item active" data-id="all">
@@ -124,10 +125,18 @@
           </div>
 
           <div class="tool-right">
-            <button class="tool-btn" id="move-btn" title="移动到文件夹">
+            <button
+              class="tool-btn mobile-only"
+              id="move-btn"
+              title="移动到文件夹"
+            >
               <i class="fa-regular fa-folder-open"></i>
             </button>
-            <button class="tool-btn" id="lock-btn" title="移入私密空间">
+            <button
+              class="tool-btn mobile-only"
+              id="lock-btn"
+              title="移入私密空间"
+            >
               <i class="fa-solid fa-lock"></i>
             </button>
 
@@ -209,5 +218,17 @@
     <script src="scripts/Editor.js"></script>
     <script src="scripts/Advanced.js"></script>
     <script src="scripts/Main.js"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("./scripts/ServiceWorker.js")
+            .then((reg) => console.log("Service Worker registered!", reg))
+            .catch((err) =>
+              console.log("Service Worker registration failed", err)
+            );
+        });
+      }
+    </script>
   </body>
 </html>

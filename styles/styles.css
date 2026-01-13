@@ -977,8 +977,10 @@ li {
     box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3);
     transition: left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
-  
-  .sidebar.open { left: 0; }
+
+  .sidebar.open {
+    left: 0;
+  }
 
   /* 3. 列表页：默认占满全屏 */
   .list-view {
@@ -986,12 +988,12 @@ li {
     border-right: none;
     z-index: 10;
   }
-  
+
   /* 列表页头部适配 */
   .list-header-top {
     padding: 15px 15px 5px; /* 减小间距 */
   }
-  
+
   .search-action-area {
     padding: 0 15px;
   }
@@ -1017,7 +1019,7 @@ li {
   .editor-container {
     padding: 15px 20px; /* 缩小内边距！电脑是30px 60px */
   }
-  
+
   /* 标题字号减小 */
   #note-title {
     font-size: 22px;
@@ -1033,7 +1035,7 @@ li {
     white-space: nowrap; /* 按钮不换行 */
     -webkit-overflow-scrolling: touch; /* 丝滑滚动 */
   }
-  
+
   /* 强制显示返回按钮 */
   .mobile-only {
     display: inline-flex !important; /* 提高优先级 */
@@ -1044,7 +1046,7 @@ li {
     width: 32px;
     height: 32px;
   }
-  
+
   /* 让 EasyMDE 工具栏也能滚动 */
   .editor-toolbar {
     flex-wrap: nowrap !important;
@@ -1056,7 +1058,7 @@ li {
   #editor-empty-state {
     display: none !important;
   }
-  
+
   /* 手机上隐藏右侧删除按钮，因为上面工具栏已经有了，或者空间不够 */
   .list-stats-bar {
     padding: 10px 15px;
@@ -1151,3 +1153,96 @@ li {
 /* ============================================================================
    文件结束
    ============================================================================ */
+/* ============================================================================
+   5. 响应式与动画 📱 (Responsive)
+   ============================================================================ */
+
+/* --- 桌面端默认行为 --- */
+/* 关键修复：默认隐藏 .mobile-only 类，仅在移动端显示 */
+.mobile-only {
+  display: none !important;
+}
+
+/* --- 移动端适配 (小于 768px) --- */
+@media screen and (max-width: 768px) {
+  /* 显示移动端专属元素 */
+  .mobile-only {
+    display: flex !important;
+  }
+
+  /* 侧边栏改为抽屉模式 */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 1000;
+    transform: translateX(-100%);
+    width: 280px;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* 列表视图全屏 */
+  .list-view {
+    width: 100%;
+    border-right: none;
+  }
+
+  /* 隐藏编辑器 (默认状态) */
+  .editor-view {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 500;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  }
+
+  /* 编辑模式：滑入编辑器 */
+  .app.mobile-editing .list-view {
+    display: none;
+  }
+
+  .app.mobile-editing .editor-view {
+    transform: translateX(0);
+    z-index: 900;
+  }
+
+  /* 调整内边距 */
+  .editor-container {
+    padding: 20px;
+  }
+
+  .toolbar {
+    padding: 10px 15px;
+  }
+}
+
+/* --- 动画关键帧 --- */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
